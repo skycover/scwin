@@ -1,0 +1,69 @@
+SCWin - SkyCover Windows installer. http://github.com/skycover/scwin/
+(c) 2011 Dmitry Chernyak
+
+SCWin is the simple scripts that will install CygWin and also
+duplicity, scduply, scdw and all the dependent components.
+
+All the components, excluding CygWin (because of it's licence) are
+packaged here only to simplify the installation process.
+
+
+INSTALLATION
+
+1. First download SCWin from https://github.com/skycover/zipball/master
+And extract it to C:\Distrib\scwin.
+
+NOTE: You MUST to place this distributive to C:\Distrib\scwin.
+After installation it will use about 60Mb (the downloaded CygWin distro).
+
+2. Download "setup.exe" from http://cygwin.com/setup.exe
+and place it to extracted C:\Distrib\scwin directory.
+
+3. Run scw-install.cmd
+
+* Choose mirror and click "Ok" and "Next" buttons to the end.
+
+* You MUST to direct the CygWin to C:\cygwin (this is the default).
+After installation about 300Mb will be used (CygWin and Django inside).
+
+NOTE: The specialists can relocate cygwin to the other directory easy,
+but this is not recommended for newbies and for the first expirience either.
+
+4. During the installation you will be prompted for username, email and
+password - theese will be your credentials to login SCDW - the web backup
+configuration program.
+The email is meaningless here but it should looks like a regular email address.
+
+5. Next you'll be prompted to confirm ssh key generation - just press <enter>
+several times.
+
+
+USAGE
+
+1. Run CygWn Shell and type "scdw" into it.
+
+2. Point your browser to http://localhost:8088/ and enter the username and
+the password.
+
+3. Follow the manuals to SCDW and scduply.
+
+
+REINSTALLATION
+
+Once downoaded, the CygWin distro can be reused.
+To install on another computer, just copy C:\Distrib\scwin to it,
+then in the scw-install.cmd uncomment the string
+ setup.exe -L -l %src%\cygwin -R %dst% -q -P %packages%
+(one with -L key)
+and comment another one.
+
+Then run scw-install.cmd and proceed as usual.
+
+
+LICENSE
+
+This program is licensed under GPLv3.
+Please read the accompanying license information in gpl.txt.
+
+The included programs are licenced with their packaged licences.
+TODO: to add web links where components can be downloaded originally.
