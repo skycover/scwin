@@ -14,19 +14,20 @@ INSTALLATION
 And extract it to C:\Distrib\scwin.
 
 NOTE: You MUST to place this distributive to C:\Distrib\scwin.
-After installation it will use about 60Mb (the downloaded CygWin distro).
 
 2. Download "setup.exe" from http://cygwin.com/setup.exe
 and place it to extracted C:\Distrib\scwin directory.
 
+After installation it will use about 60Mb (the downloaded CygWin distro).
+
 3. Run scw-install.cmd
 
-* Choose mirror and click "Ok" and "Next" buttons to the end.
+* Choose mirror and then click "Ok" and "Next" buttons to the end.
 
 * You MUST to direct the CygWin to C:\cygwin (this is the default).
 After installation about 300Mb will be used (CygWin and Django inside).
 
-NOTE: The specialists can relocate cygwin to the other directory easy,
+NOTE: The smart guys can relocate cygwin to the other directory easy,
 but this is not recommended for newbies and for the first expirience either.
 
 4. During the installation you will be prompted for username, email and
@@ -46,6 +47,7 @@ USAGE
 the password.
 
 3. Follow the manuals to SCDW and scduply.
+http://www.skycover.ru/opensource (in Russian)
 
 
 REINSTALLATION
@@ -54,8 +56,7 @@ Once downoaded, the CygWin distro can be reused.
 To install on another computer, just copy C:\Distrib\scwin to it,
 then in the scw-install.cmd uncomment the string
  setup.exe -L -l %src%\cygwin -R %dst% -q -P %packages%
-(one with -L key)
-and comment another one.
+(one with -L key) and comment another one.
 
 Then run scw-install.cmd and proceed as usual.
 
@@ -66,4 +67,4 @@ This program is licensed under GPLv3.
 Please read the accompanying license information in gpl.txt.
 
 The included programs are licenced with their packaged licences.
-TODO: to add web links where components can be downloaded originally.
+TODO: to add web links where the components can be downloaded originally.
