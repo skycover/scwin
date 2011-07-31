@@ -5,13 +5,12 @@ set asm=%dst%\usr\local\src
 set packages="python,gnupg,gcc,librsync-devel,librsync1,wget,vim,ncftp,openssh,cron"
 chdir %src%
 mkdir cygwin
-rem Use to install cygwin from the %src%/cygwin directory
-rem setup.exe -L -l %src%\cygwin -R %dst% -q -P %packages%
-rem Use to install cygwin from the Internet
-setup.exe -l %src%\cygwin -R %dst% -q -P %packages%
+rem Use scw-install.cmd -L to install cygwin from local directory
+setup.exe %1 -l %src%\cygwin -R %dst% -q -P %packages%
 mkdir %asm%
 copy *.tar.gz %asm%
 copy scw-postinst.sh %asm%
+copy sysstate.* %asm%
 chdir %asm%
 %dst%\bin\bash %asm%\scw-postinst.sh
 chdir %src%

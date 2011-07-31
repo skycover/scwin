@@ -1,6 +1,9 @@
 #/bin/bash
 . /etc/profile
 cd /usr/local/src
+#
+# Install extra packages
+#
 mkdir extract
 cd extract
 for i in ../*.tar.gz; do tar zxvf $i; done
@@ -14,13 +17,30 @@ cd ../skycover-scduply-*
 ./install.sh
 cd ../skycover-scdw-*
 ./install.sh
-cd ..
+cd ../..
+#
+# Tune environment
+#
 echo "ulimit -n 1024" >>/etc/profile
+#
+# Generate ssh key
+# Export public key to
+#  C:\cygwin\usr\local\src\exported.pub
+#  to connect SkyCover Backup service
+#
 ssh-keygen -b 2048 -t rsa
 echo|ssh-keygen -e >exported.pub
+#
+# Set up cron as service
+#
 cron-config <<EOF
 yes
 ntsec
 no
 yes
 EOF
+#
+# Copy ntbackup systemstate stuff
+#
+cp sysstate.cmd /usr/local/bin
+cp sysstate.pre ~
