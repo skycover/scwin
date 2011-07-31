@@ -62,6 +62,22 @@ genetage your GPG key with "gpg --gen-key" shell command.
 http://www.skycover.ru/opensource (in Russian)
 
 
+BACK UP SYSTEM STATE
+
+1. Create backup job, name it SysState (for example)
+Point it to backup directory /cygdrive/c/ntback
+
+2. Install pre-backup script:
+
+cp /usr/local/src/sysstate.pre ~/.scduply/SysState/pre
+
+3. To test issue
+
+scduply SysState backup
+
+...the ntbackup will start and then the result will be backed up.
+
+
 POPULATING TO ANOTHER SERVERS
 
 Once downoaded, the CygWin distro can be reused.

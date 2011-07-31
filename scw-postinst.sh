@@ -40,7 +40,7 @@ no
 yes
 EOF
 #
-# Copy ntbackup systemstate stuff
+# Prepare ntbackup systemstate stuff
 #
+mkdir /cygdrive/c/ntback
 cp sysstate.cmd /usr/local/bin
-cp sysstate.pre ~
