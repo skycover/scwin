@@ -10,7 +10,7 @@ packaged here only to simplify the installation process.
 
 INSTALLATION
 
-1. First download SCWin from https://github.com/skycover/zipball/master
+1. First download SCWin from https://github.com/skycover/cwin/ipball/master
 And extract it to C:\Distrib\scwin.
 
 NOTE: You MUST to place this distributive to C:\Distrib\scwin.
@@ -46,11 +46,23 @@ USAGE
 2. Point your browser to http://localhost:8088/ and enter the username and
 the password.
 
-3. Follow the manuals to SCDW and scduply.
+3. You will be prompted to initilize the backup system. Proceed.
+
+4. Go "Quick Setup" and set TARGET, GPG_PW (encryption password), or a pair
+GPG_KEY + GPG_PW if you wish to use GPG key. In this case you should manually
+genetage your GPG key with "gpg --gen-key" shell command.
+
+5. Go "Configure new job" and proceed.
+
+6. Test backup with "scduply NAME backup" shell command.
+
+7. Use "crontab" to automate backups.
+
+8. Follow the manuals to SCDW and scduply.
 http://www.skycover.ru/opensource (in Russian)
 
 
-REINSTALLATION
+POPULATING TO ANOTHER SERVERS
 
 Once downoaded, the CygWin distro can be reused.
 To install on another computer, just copy C:\Distrib\scwin to it,
