@@ -65,12 +65,12 @@ http://www.skycover.ru/opensource (in Russian)
 POPULATING TO ANOTHER SERVERS
 
 Once downoaded, the CygWin distro can be reused.
-To install on another computer, just copy C:\Distrib\scwin to it,
-then in the scw-install.cmd uncomment the string
- setup.exe -L -l %src%\cygwin -R %dst% -q -P %packages%
-(one with -L key) and comment another one.
+To install on another computer without Internet, just copy
+C:\Distrib\scwin to it, then in run
 
-Then run scw-install.cmd and proceed as usual.
+scw-install.cmd -L
+
+...and proceed as usual.
 
 
 LICENSE
