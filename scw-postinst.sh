@@ -18,3 +18,9 @@ cd ..
 echo "ulimit -n 1024" >>/etc/profile
 ssh-keygen -b 2048 -t rsa
 echo|ssh-keygen -e >exported.pub
+cron-config <<EOF
+yes
+ntsec
+no
+yes
+EOF

@@ -2,7 +2,7 @@ set src=C:\Distrib\scwin
 if not exist %src%/setup.exe goto message
 set dst=c:\cygwin
 set asm=%dst%\usr\local\src
-set packages="python,gnupg,gcc,librsync-devel,librsync1,wget,vim,ncftp,openssh"
+set packages="python,gnupg,gcc,librsync-devel,librsync1,wget,vim,ncftp,openssh,cron"
 chdir %src%
 mkdir cygwin
 rem Use to install cygwin from the %src%/cygwin directory
