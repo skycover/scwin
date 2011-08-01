@@ -23,14 +23,6 @@ cd ../..
 #
 echo "ulimit -n 1024" >>/etc/profile
 #
-# Generate ssh key
-# Export public key to
-#  C:\cygwin\usr\local\src\exported.pub
-#  to connect SkyCover Backup service
-#
-ssh-keygen -b 2048 -t rsa
-echo|ssh-keygen -e >exported.pub
-#
 # Set up cron as service
 #
 cron-config <<EOF
@@ -39,6 +31,14 @@ ntsec
 no
 yes
 EOF
+#
+# Generate ssh key
+# Export public key to
+#  C:\cygwin\usr\local\src\exported.pub
+#  to connect SkyCover Backup service
+#
+ssh-keygen -b 2048 -t rsa
+echo|ssh-keygen -e >exported.pub
 #
 # Prepare ntbackup systemstate stuff
 #
