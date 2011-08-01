@@ -13,7 +13,7 @@ INSTALLATION
 Instructions in Russian are available at
 http://www.skycover.ru/opensource/scdw/scdw-install/
 
-1. First download SCWin from https://github.com/skycover/cwin/zipball/master
+1. First download SCWin from https://github.com/skycover/scwin/zipball/master
 And extract it to C:\Distrib\scwin.
 
 NOTE: You MUST to place this distributive to C:\Distrib\scwin.
