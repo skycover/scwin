@@ -24,6 +24,14 @@ cd ../..
 mkdir /cygdrive/c/ntback
 cp sysstate.cmd /usr/local/bin
 #
+# Installing scdw to Desktop
+#
+if [ -d "$USERPROFILE/Desktop" ]; then
+  cp scdw.cmd "$USERPROFILE/Desktop"
+elif [ -d "$USERPROFILE/Рабочий стол" ]; then
+  cp scdw.cmd "$USERPROFILE/Рабочий стол"
+fi
+#
 # Tune environment
 #
 echo "ulimit -n 1024" >>/etc/profile

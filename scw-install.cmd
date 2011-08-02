@@ -11,6 +11,7 @@ mkdir %asm%
 copy *.tar.gz %asm%
 copy scw-postinst.sh %asm%
 copy sysstate.* %asm%
+copy scdw.cmd %asm%
 chdir %asm%
 %dst%\bin\bash %asm%\scw-postinst.sh
 chdir %src%
