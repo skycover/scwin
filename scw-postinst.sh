@@ -19,6 +19,11 @@ cd ../skycover-scdw-*
 ./install.sh
 cd ../..
 #
+# Prepare ntbackup systemstate stuff
+#
+mkdir /cygdrive/c/ntback
+cp sysstate.cmd /usr/local/bin
+#
 # Tune environment
 #
 echo "ulimit -n 1024" >>/etc/profile
@@ -40,7 +45,6 @@ EOF
 ssh-keygen -b 2048 -t rsa
 echo|ssh-keygen -e >exported.pub
 #
-# Prepare ntbackup systemstate stuff
+# Generate GPG key
 #
-mkdir /cygdrive/c/ntback
-cp sysstate.cmd /usr/local/bin
+gpg --gen-key
