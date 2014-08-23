@@ -1,5 +1,5 @@
 SCWin - SkyCover Windows installer. http://github.com/skycover/scwin/
-(c) 2011 Dmitry Chernyak
+(c) 2011-2014 Dmitry Chernyak
 
 SCWin is the simple scripts that will install CygWin and also
 duplicity, scduply, scdw and all the dependent components.
@@ -18,12 +18,9 @@ And extract it to C:\Distrib\scwin.
 
 NOTE: You MUST to place this distributive to C:\Distrib\scwin.
 
-2. Download "setup.exe" from http://cygwin.com/setup.exe
-and place it to extracted C:\Distrib\scwin directory.
+2. Run scw-install.cmd
 
-After installation it will use about 60Mb (the downloaded CygWin distro).
-
-3. Run scw-install.cmd
+It will download cygwin setup utility and start it.
 
 * Choose mirror and then click "Ok" and "Next" buttons to the end.
 
@@ -33,13 +30,18 @@ After installation about 300Mb will be used (CygWin and Django inside).
 NOTE: The smart guys can relocate cygwin to the other directory easy,
 but this is not recommended for newbies and for the first expirience either.
 
-4. During the installation you will be prompted for username, email and
+3. Run scdw-postinst.cmd
+
+During the installation you will be prompted for username, email and
 password - theese will be your credentials to login SCDW - the web backup
 configuration program.
 The email is meaningless here but it should looks like a regular email address.
 
-5. Next you'll be prompted to confirm ssh key generation - just press <enter>
+Next you'll be prompted to confirm ssh key generation - just press <enter>
 several times.
+
+And finally you will be prompted for GPG key generation.
+Follow the instructions or skip this phase.
 
 
 USAGE
@@ -67,6 +69,8 @@ http://www.skycover.ru/opensource (in Russian)
 
 BACK UP SYSTEM STATE
 
+Outdated. Works only for NT/2000/XP
+
 1. Create backup job, name it SysState (for example)
 Point it to backup directory /cygdrive/c/ntback
 
@@ -88,6 +92,7 @@ To install on another computer without Internet, just copy
 C:\Distrib\scwin to it, then in run
 
 scw-install.cmd -L
+scw-postinst.cmd
 
 ...and proceed as usual.
 
