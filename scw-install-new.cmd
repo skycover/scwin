@@ -1,27 +1,35 @@
 @echo off
 :: install cygwin and scduply by Consult-MIT
 setlocal ENABLEEXTENSIONS EnableDelayedExpansion
+set $s_fname=%~f0
+set $s_name=%~nx0
+set $loglevel=2
+::set $logfile=%public%\log.log
 
+::check admin rights
 reg.exe query "HKU\S-1-5-19">nul 2>&1
 if %errorlevel% equ 1 (
 	call :UACPrompt
 	exit /b 0
 )
+
 set src=%cd%
 set dst=c:\cygwin
 set asm=%dst%\usr\local\src
 set cygsetup=setup-x86.exe
-set msi_7z=7z922-x64.msi
+set msi_7z=7z922.msi
 set http_7z=http://downloads.sourceforge.net/project/sevenzip/7-Zip/9.22/7z922.msi?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fsevenzip%2Ffiles%2F7-Zip%2F9.22%2F7z922.msi
 if defined ProgramFiles(x86) (
     set cygsetup=setup-x86_64.exe
     set http_7z=http://downloads.sourceforge.net/project/sevenzip/7-Zip/9.22/7z922-x64.msi?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fsevenzip%2Ffiles%2F7-Zip%2F9.22%2F7z922-x64.msi%
     set msi_7z=7z922-x64.msi
 )
-for /f "tokens=*" %%a in ('call :winver') do echo %%a
+
 call :winver
+
 pause > nul 2>nul
-:: call :install_all
+call :install_all
+
 exit /b 0
 
 :: ==================================================================
@@ -94,9 +102,30 @@ exit /b
 :: ==================================================================
 
 :: ==================================================================
-:: error message
-:message
-	echo You should place ditributive to %src%
-	echo And should run scw-install.cmd just from it.
+:log [type] [msg]
+:: definition of msg
+:: $loglevel  0 nothing
+::            1 errors only
+::            2 everything
+:: type error, debug, message
+set msg=%date:~6,4%.%date:~3,2%.%date:~0,2% !time! %username% %$s_name%: %~2
+for %%a in (ERROR DEBUG) do if /i %%a==%~1 set msg=%date:~6,4%.%date:~3,2%.%date:~0,2% !time! %username% %$s_name%: %%a - %~2
+if not defined $logfile (
+	if "%$loglevel%"=="2" (
+		echo !msg!
+		exit /b 0
+	) else if "%$loglevel%"=="1" if /i "%~1"=="error" (
+			echo !msg!
+			exit /b 0
+		) else exit /b 0
+) else (
+	if "%$loglevel%"=="2" (
+		echo !msg!
+		exit /b 0
+	) else if "%$loglevel%"=="1" if "%~1"=="error" (
+			echo !msg!
+			exit /b 0
+		) else exit /b 0
+) >> "%$logfile%"
 exit /b 0
 :: ==================================================================
