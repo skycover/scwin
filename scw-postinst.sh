@@ -4,6 +4,7 @@ cd /usr/local/src
 #
 # Install extra packages
 #
+./getfresh.sh
 mkdir extract
 cd extract
 for i in ../*.tar.gz; do tar zxvf $i; done

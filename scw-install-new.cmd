@@ -30,6 +30,8 @@ call :winver
 pause > nul 2>nul
 call :install_all
 
+pause
+
 exit /b 0
 
 :: ==================================================================
