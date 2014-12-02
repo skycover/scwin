@@ -7,8 +7,8 @@ set $loglevel=2
 ::set $logfile=%public%\log.log
 
 ::check admin rights
-reg.exe query "HKU\S-1-5-19">nul 2>&1
-if %errorlevel% equ 1 (
+reg.exe query "HKU\S-1-5-19">nul 2>nul || (
+	call :log message "this is not admin!"
 	call :UACPrompt
 	exit /b 0
 )
@@ -27,50 +27,55 @@ if defined ProgramFiles(x86) (
 
 call :winver
 
-pause > nul 2>nul
+
 call :install_all
 
 pause
-
 exit /b 0
 
 :: ==================================================================
 :: installing all things
 :install_all
 if exist %src%/%cygsetup% ( call :cygok) else ( 
-    wget http://cygwin.com/%cygsetup% 
-    call :cygok 
-    if not exist scduply.zip wget "https://github.com/skycover/scwin/zipball/master" --no-check-certificate -O scduply.zip
-    echo  call :extract_scduply
+   wget http://cygwin.com/%cygsetup% 
+   call :cygok 
+   if not exist scduply.zip wget "https://github.com/skycover/scwin/zipball/ver2" --no-check-certificate -O scduply.zip
 	call :extract_scduply
-    echo call :postinst
-    call :postinst
+   call :log debug "call :postinst"
+   call :postinst
 )
 exit /b 0
 :: ==================================================================
 
 :: ==================================================================
 :postinst
-	chdir "%src%\scwin"
+	chdir "%src%\scwin\skycover-scwin-*"
+	call :log debug "%cd%"
+	if not exist "skycover-scduply-latest.tar.gz" wget --no-check-certificate https://github.com/skycover/scduply/tarball/master -O skycover-scduply-latest.tar.gz
+	if not exist "skycover-scdw-latest.tar.gz" wget --no-check-certificate https://github.com/skycover/scdw/tarball/master -O skycover-scdw-latest.tar.gz
 	if not exist "%asm%" mkdir %asm%
 	copy *.tar.gz %asm%
 	copy scw-postinst.sh %asm%
-	copy sysstate.* %asm%
 	copy scdw.cmd %asm%
 	chdir %asm%
+	call :log debug "%cd%"
+	call :lof debug "call %dst%\bin\bash %asm%\scw-postinst.sh"
 	%dst%\bin\bash %asm%\scw-postinst.sh
 exit /b 0
 :: ==================================================================
 
 :: ==================================================================
 :extract_scduply
-echo extract
+call :log message "trying extract scduply.zip"
 if not exist "%programfiles%\7-zip" (
-    wget %http_7z% && %msi_7z% /quiet /norestart
+	call :log debug "7z is't installed, install"
+    wget %http_7z% && %msi_7z% /quiet /norestart 
 )
-cd %programfiles%\7-zip
-echo "%src%\scduply.zip"
-7z e "%src%\scduply.zip" -o"%src%\scwin" -y
+cd %programfiles%\7-zip || (
+	call :log error "7z is not installed, exit whith error!"
+	exit /b 1
+)
+7z x "%src%\scduply.zip" -o"%src%\scwin" -y
 exit /b 0
 :: ==================================================================
 
@@ -80,7 +85,7 @@ exit /b 0
 for /f "tokens=2*" %%a in ('Reg QUERY "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v ProductName^|find /i "REG"') do set winver=%%b
 for /f "tokens=2*" %%a in ('Reg QUERY "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v CSDVersion^|find /i "REG"') do set winver=%winver% %%b
 if exist "%programfiles% (x86)" ( set winver=%winver% x64) else ( set winver=%winver% x32) 
-echo %winver%
+call :log message "%winver%"
 exit /b 0
 :: ==================================================================
 
@@ -89,7 +94,10 @@ exit /b 0
 :cygok
 set packages="python,gnupg,gcc,gcc-core,cyglsa,librsync-devel,librsync1,wget,vim,ncftp,openssh,cron" 
 set server="http://cygwin.mirror.constant.com" 
-chdir %src%
+call :log message "trying install cygwin with this packages:"
+call :log message "%packages%"
+call :log message "with mirror %server%"
+cd %src%
 mkdir cygwin
 rem Use scw-install.cmd -L to install cygwin from local directory
 %cygsetup% %1 -l %src%\cygwin -R %dst% -q -P %packages% -s %server% -d
@@ -99,7 +107,7 @@ exit /b %errorlevel%
 :: ==================================================================
 :UACPrompt
 :: запуск самого себя от имени администратора
-mshta "vbscript:CreateObject("Shell.Application").ShellExecute("%~fs0", "", "%src%", "runas", 1) & Close()"
+mshta "vbscript:CreateObject("Shell.Application").ShellExecute("%$s_fname%", "", "%src%", "runas", 1) & Close()"
 exit /b
 :: ==================================================================
 
