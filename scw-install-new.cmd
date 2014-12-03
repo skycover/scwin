@@ -92,7 +92,7 @@ exit /b 0
 :: ==================================================================
 :: install cygwin
 :cygok
-set packages="python,gnupg,gcc,gcc-core,cyglsa,librsync-devel,librsync1,wget,vim,ncftp,openssh,cron" 
+set packages="python,gnupg,gcc,gcc-core,cyglsa,librsync-devel,librsync1,wget,vim,ncftp,openssh,cron,email" 
 set server="http://cygwin.mirror.constant.com" 
 call :log message "trying install cygwin with this packages:"
 call :log message "%packages%"
