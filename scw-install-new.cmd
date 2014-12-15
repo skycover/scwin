@@ -20,7 +20,6 @@ set cygsetup=setup-x86.exe
 set msi_7z=7z922.msi
 set http_7z=http://downloads.sourceforge.net/project/sevenzip/7-Zip/9.22/7z922.msi?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fsevenzip%2Ffiles%2F7-Zip%2F9.22%2F7z922.msi
 if defined ProgramFiles(x86) (
-    set cygsetup=setup-x86_64.exe
     set http_7z=http://downloads.sourceforge.net/project/sevenzip/7-Zip/9.22/7z922-x64.msi?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fsevenzip%2Ffiles%2F7-Zip%2F9.22%2F7z922-x64.msi%
     set msi_7z=7z922-x64.msi
 )
@@ -92,7 +91,7 @@ exit /b 0
 :: ==================================================================
 :: install cygwin
 :cygok
-set packages="python,gnupg,gcc,gcc-core,cyglsa,librsync-devel,librsync1,wget,vim,ncftp,openssh,cron,email" 
+set packages="python,gnupg,gcc,gcc-core,cyglsa,librsync-devel,librsync1,wget,vim,ncftp,openssh,cron,exim" 
 set server="http://cygwin.mirror.constant.com" 
 call :log message "trying install cygwin with this packages:"
 call :log message "%packages%"

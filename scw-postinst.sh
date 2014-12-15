@@ -21,11 +21,7 @@ cd ../skycover-scduply-*
 cd ../skycover-scdw-*
 ./install.sh
 cd ../..
-#
-# Prepare ntbackup systemstate stuff
-#
-mkdir /cygdrive/c/ntback
-cp sysstate.cmd /usr/local/bin
+
 #
 # Installing scdw to Desktop
 #
@@ -59,3 +55,4 @@ echo|ssh-keygen -e >exported.pub
 # Generate GPG key
 #
 gpg --gen-key
+exim-comfig
