@@ -55,4 +55,4 @@ echo|ssh-keygen -e >exported.pub
 # Generate GPG key
 #
 gpg --gen-key
-exim-comfig
+exim-config
