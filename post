@@ -1,0 +1,10 @@
+#!/bin/bash
+# pre for scduply + windows 7/8/8.1 + vss
+
+function remove_shadow {
+# remove_shadow [ssid]
+	cd "$vss_tool_path"
+	rm -f /vsshadow/*
+	./vshadow.exe -dx=$ShadowSetID 
+}
+remove_shadow

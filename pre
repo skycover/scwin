@@ -1,0 +1,38 @@
+#!/bin/bash
+# pre for scduply + windows 7/8/8.1 + vss
+
+function make_vss {
+# make_backup [winpath]
+	cd "$vss_tool_path"
+# def parameters
+	eval $(./vshadow.exe -p $disk_source: | awk '
+			BEGIN {
+				FS="[ \t:\\\\\/\\[\\]]+"
+			}
+			/- Shadow copy Set/{
+				printf("ShadowSetID=%s\n",$NF)
+			}
+			/- Original Volume name/ {
+				printf("ShadowDisk=%s\n",$(NF-1))
+			}
+			/- Shadow copy device name/ {
+				printf("ShadowVolume=\"%s\"\n",$NF)
+			}
+	'  2>/dev/null)
+	[[ ! -e "/vsshadow" ]] && mkdir "/vsshadow"
+	ln -ds "/proc/sys/Device/${ShadowVolume}" "/vsshadow/${ShadowDisk,,}"
+}
+
+
+
+vss_tool_path='C:\Program Files (x86)\Windows Kits\8.1\bin\x64'
+# ch source
+SOURCE=$(echo $SOURCE | sed 's/cygdrive/vsshadow/')
+#get source_vss
+disk_source=$(echo ${SOURCE,,}|awk -F"[\\\/]+" '{if (length($3)==1) print $3}')
+
+#ch exclude
+cat $EXCLUDE | sed 's/cygdrive/vsshadow/' > $EXCLUDE.vss
+EXCLUDE="$EXCLUDE.vss"
+
+make_vss
