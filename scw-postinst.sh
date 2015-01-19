@@ -27,8 +27,6 @@ cd ../..
 #
 if [ -d "$USERPROFILE/Desktop" ]; then
   cp scdw.cmd "$USERPROFILE/Desktop"
-elif [ -d "$USERPROFILE/Рабочий стол" ]; then
-  cp scdw.cmd "$USERPROFILE/Рабочий стол"
 fi
 #
 # Tune environment
@@ -55,4 +53,3 @@ echo|ssh-keygen -e >exported.pub
 # Generate GPG key
 #
 gpg --gen-key
-exim-config

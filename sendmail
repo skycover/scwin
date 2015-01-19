@@ -1,0 +1,43 @@
+#!/bin/env python
+
+import sys
+import smtplib
+# import ass
+import mail_auth
+
+mail = sys.stdin.read()
+
+#
+def find_to(body):
+        body=body.split('\n')
+        for i in body:
+                str=i.split(' ')
+                if str[0] == 'To:' :
+                        break
+        return str[1]
+
+def find_from(body):
+   body=body.split('\n')
+   for i in body:
+      str=i.split(' ')
+      if str[0] == 'From:' :
+         break
+   return str[1]
+
+message=smtplib.SMTP(mail_auth.server, mail_auth.port)
+#message.set_debuglevel(1)
+try:
+	mail_auth.use_tls
+	message.ehlo()
+	message.starttls()
+	message.ehlo()
+except:
+	print "without TLS"
+
+try:
+	message.login(mail_auth.username, mail_auth.password)
+except:
+	print "without autorization"
+
+message.sendmail(find_from(mail), find_to(mail), mail)
+message.quit()

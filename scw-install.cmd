@@ -13,7 +13,7 @@ reg.exe query "HKU\S-1-5-19">nul 2>nul || (
 	exit /b 0
 )
 
-set src=%cd%
+set src=%~dp0
 set dst=c:\cygwin
 set asm=%dst%\usr\local\src
 set cygsetup=setup-x86.exe
@@ -22,6 +22,7 @@ set http_7z=http://downloads.sourceforge.net/project/sevenzip/7-Zip/9.22/7z922.m
 if defined ProgramFiles(x86) (
     set http_7z=http://downloads.sourceforge.net/project/sevenzip/7-Zip/9.22/7z922-x64.msi?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fsevenzip%2Ffiles%2F7-Zip%2F9.22%2F7z922-x64.msi%
     set msi_7z=7z922-x64.msi
+	set cygsetup=setup-x86_64.exe
 )
 
 call :winver
@@ -35,8 +36,9 @@ exit /b 0
 :: ==================================================================
 :: installing all things
 :install_all
-if exist %src%/%cygsetup% ( call :cygok) else ( 
-   wget http://cygwin.com/%cygsetup% 
+cd "%src%"
+if exist "%src%\%cygsetup%" ( call :cygok) else ( 
+   wget.exe "http://cygwin.com/%cygsetup%" 
    call :cygok 
    if not exist scduply.zip wget "https://github.com/skycover/scwin/zipball/ver2" --no-check-certificate -O scduply.zip
 	call :extract_scduply
@@ -91,7 +93,7 @@ exit /b 0
 :: ==================================================================
 :: install cygwin
 :cygok
-set packages="python,gnupg,gcc,gcc-core,cyglsa,librsync-devel,librsync1,wget,vim,ncftp,openssh,cron,exim" 
+set packages="python,gnupg,gcc,gcc-core,cyglsa,librsync-devel,librsync1,wget,vim,ncftp,openssh,cron,dos2unix" 
 set server="http://cygwin.mirror.constant.com" 
 call :log message "trying install cygwin with this packages:"
 call :log message "%packages%"
@@ -105,7 +107,7 @@ exit /b %errorlevel%
 
 :: ==================================================================
 :UACPrompt
-:: Р·Р°РїСѓСЃРє СЃР°РјРѕРіРѕ СЃРµР±СЏ РѕС‚ РёРјРµРЅРё Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°
+:: запуск самого себя от имени администратора
 mshta "vbscript:CreateObject("Shell.Application").ShellExecute("%$s_fname%", "", "%src%", "runas", 1) & Close()"
 exit /b
 :: ==================================================================
