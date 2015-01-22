@@ -1,0 +1,57 @@
+#!/bin/bash
+function check_vss {
+	echo installed os is $(cat "$reg_ostype")
+	cat "$reg_ostype" | grep -i "server" >/dev/null 2>&1 && {
+		win_os_type="server"
+		return 0
+	} || win_os_type="workstation"
+	if [[ "$win_os_type" == "workstation" ]];then 
+		cat "$reg_ostype" | grep -i "7" >/dev/null 2>&1 && {
+			[[ -e "$SYSTEMROOT\syswow64" ]] && {
+				vss_tool_path="$vss_workstation_7_64"
+			} || {
+				vss_tool_path="$vss_workstation_7_32"
+			}
+			vss_download="$vss_download_7"
+		}
+		cat "$reg_ostype" | grep -i "8" >/dev/null 2>&1 && {
+			echo $PROGRAMFILES | grep -i "(x86)" >/dev/null 2>/dev/null  && {
+				vss_tool_path="$vss_workstation_8_64"
+			} || {
+				vss_tool_path="$vss_workstation_8_32"
+			}
+			vss_download="$vss_download_8"
+		}
+	else
+		vss_tool_path="$vss_server"
+	fi
+	[[ -e "$vss_tool_path" ]] &&  return 0 || return 1
+}
+
+vss_workstation_8_64="$PROGRAMFILES\Windows Kits\8.1\bin\x64"
+vss_workstation_8_32="$PROGRAMFILES\Windows Kits\8.1\bin\x86"
+vss_workstation_7_32="$PROGRAMFILES\Microsoft SDKs\Windows\v7.1\Bin\vsstools"
+vss_workstation_7_64="$PROGRAMFILES\Microsoft SDKs\Windows\v7.1\Bin\x64\vsstools"
+vss_download_7="http://download.microsoft.com/download/A/6/A/A6AC035D-DA3F-4F0C-ADA4-37C8E5D34E3D/winsdk_web.exe"
+vss_download_8="http://download.microsoft.com/download/B/0/C/B0C80BA3-8AD6-4958-810B-6882485230B5/standalonesdk/sdksetup.exe"
+vss_server="$SYSTEMROOT"
+reg_ostype="/proc/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/ProductName"
+vss_download=""
+
+
+if [[ $1 == "check" ]];then 
+	echo checking
+	check_vss && {
+		echo $vss_tool_path
+	} || {
+		echo missing vss tools
+		echo trying installing vss_tool
+		wget "$vss_download" -O "/tmp/sdk_tool.exe"
+		cd /tmp/
+		chmod +x ./sdk_tool.exe
+		ls -l /tmp/
+		./sdk_tool.exe
+}
+else
+	check_vss || return 1
+fi 
