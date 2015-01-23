@@ -54,10 +54,10 @@ exit /b 0
 	call :log debug "%cd%"
 	if not exist "skycover-scduply-latest.tar.gz" wget --no-check-certificate https://github.com/skycover/scduply/tarball/cygwin_adaptaion -O skycover-scduply-latest.tar.gz
 	if not exist "skycover-scdw-latest.tar.gz" wget --no-check-certificate https://github.com/skycover/scdw/tarball/master -O skycover-scdw-latest.tar.gz
-	if not exist "%asm%" mkdir %asm%
-	copy *.tar.gz %asm%
-	copy scw-postinst.sh %asm%
-	copy scdw.cmd %asm%
+	if not exist "%asm%" mkdir "%asm%"
+	copy *.tar.gz "%asm%"
+	copy scw-postinst.sh "%src%"
+	copy scdw.cmd "%asm%"
 	chdir %asm%
 	call :log debug "%cd%"
 	call :lof debug "call %dst%\bin\bash %asm%\scw-postinst.sh"
@@ -98,10 +98,10 @@ set server="http://cygwin.mirror.constant.com"
 call :log message "trying install cygwin with this packages:"
 call :log message "%packages%"
 call :log message "with mirror %server%"
-cd %src%
+cd "%src%"
 mkdir cygwin
 rem Use scw-install.cmd -L to install cygwin from local directory
-%cygsetup% %1 -l %src%\cygwin -R %dst% -q -P %packages% -s %server% -d
+%cygsetup% %1 -l "%src%\cygwin "-R %dst% -q -P %packages% -s %server% -d
 exit /b %errorlevel%
 :: ==================================================================
 
@@ -116,27 +116,40 @@ exit /b
 :log [type] [msg]
 :: definition of msg
 :: $loglevel  0 nothing
-::            1 errors only
-::            2 everything
+::            1 message only
+::            2 message + error
+::            3 everything
 :: type error, debug, message
-set msg=%date:~6,4%.%date:~3,2%.%date:~0,2% !time! %username% %$s_name%: %~2
-for %%a in (ERROR DEBUG) do if /i %%a==%~1 set msg=%date:~6,4%.%date:~3,2%.%date:~0,2% !time! %username% %$s_name%: %%a - %~2
-if not defined $logfile (
-	if "%$loglevel%"=="2" (
+::echo %~1 =====
+set msg=%~2
+set type=%~1
+set bool=false
+for %%a in (ERROR DEBUG MESSAGE) do if /i %%a==%~1 set bool=true
+if "%bool%"=="false" (
+	set msg=%*
+	set type=
+)
+if /i "%~1"=="message" set type=
+
+set msg=%date:~6,4%.%date:~3,2%.%date:~0,2% !time! %username%@%computername% %$s_name%: !type! !msg!
+::echo !type! !msg!
+if defined $logfile (
+	call :log_printmessage >> "%$logfile%"
+) else 	call :log_printmessage
+
+exit /b 0
+
+:log_printmessage [type] [msg]
+
+if "%$loglevel%"=="3" (
 		echo !msg!
 		exit /b 0
-	) else if "%$loglevel%"=="1" if /i "%~1"=="error" (
-			echo !msg!
-			exit /b 0
-		) else exit /b 0
-) else (
-	if "%$loglevel%"=="2" (
-		echo !msg!
-		exit /b 0
-	) else if "%$loglevel%"=="1" if "%~1"=="error" (
-			echo !msg!
-			exit /b 0
-		) else exit /b 0
-) >> "%$logfile%"
+) else if "%$loglevel%"=="2" (
+	if /i "!type!"=="error" echo !msg!
+	if /i "!type!"=="" echo !msg!
+	exit /b 0
+) else if "%$loglevel%"=="1" (
+	if /i "!type!"=="" echo !msg!
+) else exit /b 0
 exit /b 0
 :: ==================================================================
