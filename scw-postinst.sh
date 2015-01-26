@@ -28,7 +28,7 @@ cd ../..
 #
 
 # do some things
-cd "$1\scwin\*"
+cd /usr/local/src/scwin
 cp ./sendmail /usr/local/bin/
 cp ./mail_auth.py /usr/local/bin/
 cp ./check_vss /usr/local/bin/
