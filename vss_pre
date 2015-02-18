@@ -62,7 +62,7 @@ disk_source=$(echo ${SOURCE,,}|awk -F"[\\\/]+" '{if (length($3)==1) print $3}')
 cat $EXCLUDE | sed 's/cygdrive/vsshadow/' > $EXCLUDE.vss
 EXCLUDE="$EXCLUDE.vss"
 
-. /usr/local/bin/check_vss || {
+. /usr/local/bin/scwin_vss_check || {
 	echo vss is missing
 	return 1
 }

@@ -2,6 +2,8 @@
 . /etc/profile
 cd /usr/local/src
 
+scwin_lib='/usr/local/lib/scwin'
+
 #
 # Install extra packages
 #
@@ -31,15 +33,15 @@ cd ../..
 cd /usr/local/src/scwin
 cp ./sendmail /usr/local/bin/
 cp ./mail_auth.py /usr/local/bin/
-cp ./check_vss /usr/local/bin/
+cp ./scwin_* /usr/local/bin/
 ln -sf /usr/local/bin/sendmail /usr/sbin/sendmail
-mkdir -p /var/scwin/vss
-cp ./pre /var/scwin/vss/
-cp ./post /var/scwin/vss/
+#
+mkdir -p $scwin_lib
+cp ./vss_* $scwin_lib/
 
-if [ -d "$USERPROFILE/Desktop" ]; then
-  cp scdw.cmd "$USERPROFILE/Desktop"
-fi
+#if [ -d "$USERPROFILE/Desktop" ]; then
+#  cp scdw.cmd "$USERPROFILE/Desktop"
+#fi
 
 #
 # Tune environment

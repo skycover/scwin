@@ -1,0 +1,73 @@
+#!/bin/bash
+# create task for backup and shutdown 
+
+function create_bat_osn {
+	cat<<EOF
+@echo off
+setlocal ENABLEEXTENSIONS EnableDelayedExpansion
+set s_fname=%~f0
+set s_name=%~nx0
+set s_param=%*
+
+::check admin rights
+reg.exe query "HKU\S-1-5-19">nul 2>nul || (
+	::call :log message "this is not admin!"
+	call :UACPrompt %~1
+	exit /b 0
+)
+
+schtasks.exe /create /ru %USERNAME% /rp * /sc daily /tn $1 /tr "c:\cygwin\bin\bash.exe -l -c '/usr/local/bin/scduply bkpall'" /st 21:30 /f /rl HIGHEST
+
+exit /b 0
+
+:: ==================================================================
+:UACPrompt
+:: запуск самого себя от имени администратора
+mshta "vbscript:CreateObject("Shell.Application").ShellExecute("%s_fname%", "%~1", "", "runas", 1) & Close()"
+exit /b 0
+:: ==================================================================
+
+EOF
+}
+
+function create_task {
+	create_bat_osn $1 > /tmp/create_task.bat
+	unix2dos /tmp/create_task.bat > /dev/null 2> /dev/null
+	cmd.exe /c  "c:\cygwin\tmp\create_task.bat"
+	rm /tmp/create_task.bat
+
+	cat<<EOF
+created task $1 in job scheduler.
+You must check this task and change it as you wish.
+EOF
+
+	cmd /c Taskschd.msc
+}
+
+function list_task {
+	cat<<EOF
+list of scduply tasks
+EOF
+	schtasks.exe /query /fo list /v | iconv.exe -f cp866 | grep "scduply bkpall" -A 20 -B 8 | awk 'BEGIN {FS="[: \t]{2}+";t=0}{t++;if (t==2) { print$2} ;if ($0=="") t=0 }' | sort | uniq
+}
+
+usage() {
+	cat<<EOF
+USAGE: $0 [ list | create {taskname}]
+	list 			- list of scduply tasks
+	create 		- create standart scduply task. Daily, at 21:30.
+EOF
+	exit 0
+}
+
+case $1 in
+	list)
+		list_task
+		;;
+	create)
+		create_task $2
+		;;
+	*)
+		usage
+		;;
+esac

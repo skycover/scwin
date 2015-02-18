@@ -1,0 +1,188 @@
+#!/bin/bash
+
+#activate vss for tasks
+
+usage() {
+	echo "$0 [ list | [ activate | deactivate ] taskname ]"
+	
+}
+
+scduply_home="/home/$USERNAME/.scduply"
+task_list='/tmp/task_list.txt'
+vss_var='/usr/local/lib/scwin'
+
+function list_tasks {
+	cd $scduply_home
+	find  -mindepth 1 -maxdepth 1 -type d | grep -v log | sed 's%./%%' > $task_list
+	while read i; do 
+		vss_status $i
+		echo task $i status - $(error_to_text vss_status $?)
+	done < $task_list
+	rm $task_list
+}
+
+function error_to_text {
+	case $1 in
+		vss_status)
+			case $2 in
+				0) 
+					echo is not activated vss modules
+					;;
+				1) 
+					echo module post is  not activated
+					;;
+				2) 
+					echo module pre is not activated
+					;;
+				3)
+					echo modules pre and post is activated
+					;;
+				4)
+					echo task is not exist
+					;;
+				*)
+					echo unknown error $2
+					;;
+			esac
+			;;
+		*)
+			echo function $1 not exist or don\'t have status
+			;;
+	esac
+}
+
+function vss_status {
+	[[ ! -e $scduply_home/$1 ]] && {
+		return 4
+	}
+	cd $scduply_home/$1
+	_ret=0
+	grep "^. $vss_var/vss_pre" "$scduply_home/$1/pre" > /dev/null 2>/dev/null && let " _ret = _ret +1 "
+	grep "^. $vss_var/vss_post" "$scduply_home/$1/post" > /dev/null 2>/dev/null && let " _ret = _ret +2 "
+	return $_ret
+}
+
+function vss_activate_part {
+	# [task] [part]
+	[[ ( ( "$2" != "pre" ) && ( "$2" != "post" ) ) || ( "$2" == "" )  ]] && {
+		echo wrong part $2 for task $1
+		return 1
+	}	
+	[[ ! -e $scduply_home/$1/$2 ]] && {
+		echo activate module $2 in $1
+		touch $scduply_home/$1/$2
+		echo . $vss_var/vss_$2 > $scduply_home/$1/$2
+		return 0
+	} || {
+		echo activate module $2 in $1, in existed script
+		grep "^. $vss_var/vss_$2" "$scduply_home/$1/$2" > /dev/null 2>/dev/null && {
+			echo module $2 already activated
+		} || {
+			echo !!! $scduply_home/$1/$2
+			if [[ $(cat $scduply_home/$1/$2 | wc -l ) -le 2 ]];then
+				echo . $vss_var/vss_$2 >> $scduply_home/$1/$2
+			else
+				sed -i 2i". $vss_var/vss_$2" $scduply_home/$1/$2
+			fi
+		}
+		return 0
+	}
+	
+}
+
+function vss_activate {
+	# first parametr is task name
+	echo trying activate vss modules for $1
+	vss_status $1 && {
+		echo activate vss modules
+		vss_activate_part $1 pre
+		vss_activate_part $1 post
+	} || {
+		_vss_st=$?
+		echo something wrong whith $1 - $(error_to_text vss_status $_vss_st)
+		case $_vss_st in 
+			1)
+				echo restore post script
+				vss_activate_part $1 post
+				;;
+			2)
+				echo restore pre script
+				vss_activate_part $1 pre
+				;;
+			*)
+				echo nothing to do, error level is $_vss_st
+				return 0
+				;;
+		esac
+	} 
+}
+
+
+function vss_deactivate {
+	# first parametr is task name
+	echo trying deactivate vss modules for $1
+	vss_status $1 && {
+		echo echo nothing to do
+	} || {
+		_vss_st=$?
+		echo something wrong whith $1 - $(error_to_text vss_status $_vss_st)
+		case $_vss_st in 
+			1)
+				echo restore post script
+				vss_deactivate_part $1 pre
+				;;
+			2)
+				echo restore pre script
+				vss_deactivate_part $1 post
+				;;
+			3)
+				echo deactivate vss modules
+				vss_deactivate_part $1 post
+				vss_deactivate_part $1 pre
+				;;
+			*)
+				echo nothing to do
+				return 0
+				;;
+		esac
+	} 
+}
+
+function vss_deactivate_part {
+	# [task] [part]
+	[[ ( ( "$2" != "pre" ) && ( "$2" != "post" ) ) || ( "$2" == "" )  ]] && {
+		echo wrong part $2 for task $1
+		return 1
+	}	
+	[[ ! -e $scduply_home/$1/$2 ]] && {
+		echo nothing to do
+		return 0
+	} || {
+		echo deactivate module $2 in $1
+		grep "^. $vss_var/vss_$2" "$scduply_home/$1/$2" > /dev/null 2>/dev/null && {
+			sed -i "s%^. $vss_var/vss_$2%%" $scduply_home/$1/$2
+		} || echo module $2 already deactivated
+		return 0
+	}
+	
+}
+#
+[[ -z $* ]] && usage
+
+while [ $# -gt 0 ]; do
+	case "$1" in
+		list)
+			list_tasks
+			;;
+		activate)
+			vss_activate $2
+			;;
+		deactivate)
+			vss_deactivate $2
+			;;
+		*)
+			exit
+			;;
+	esac
+	shift
+done
