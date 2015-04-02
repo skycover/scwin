@@ -40,7 +40,7 @@ cd "%src%"
 if exist "%src%\%cygsetup%" ( call :cygok) else ( 
    wget.exe "http://cygwin.com/%cygsetup%" 
    call :cygok 
-   if not exist scduply.zip wget "https://github.com/skycover/scwin/zipball/ver2" --no-check-certificate -O scduply.zip
+   if not exist scduply.zip wget "https://github.com/skycover/scwin/zipball/master" --no-check-certificate -O scduply.zip
 	call :extract_scduply
    call :log debug "call :postinst"
    call :postinst
@@ -52,17 +52,16 @@ exit /b 0
 :postinst
 	chdir "%src%"
 	call :log debug "%cd%"
-	if not exist "skycover-scduply-latest.tar.gz" wget --no-check-certificate https://github.com/skycover/scduply/tarball/cygwin_adaptaion -O skycover-scduply-latest.tar.gz
+	if not exist "skycover-scduply-latest.tar.gz" wget --no-check-certificate https://github.com/skycover/scduply/tarball/master -O skycover-scduply-latest.tar.gz
 	if not exist "skycover-scdw-latest.tar.gz" wget --no-check-certificate https://github.com/skycover/scdw/tarball/master -O skycover-scdw-latest.tar.gz
 	if not exist "%asm%" mkdir "%asm%"
 	copy *.tar.gz "%asm%"
 	:: some fixes
 	if not exist "%asm%\scwin" mkdir "%asm%\scwin"
-	copy /y "%src%\pre" "%asm%\scwin\"
-	copy /y "%src%\post" "%asm%\scwin\"
+	copy /y "%src%\vss_*" "%asm%\scwin\"
 	copy /y "%src%\sendmail" "%asm%\scwin\"
 	copy /y "%src%\mail_auth.py" "%asm%\scwin\"
-	copy /y "%src%\check_vss" "%asm%\scwin\"
+	copy /y "%src%\scwin_*" "%asm%\scwin\"
 	:: end of part
 	copy scw-postinst.sh "%asm%"
 	copy scdw.cmd "%asm%"
