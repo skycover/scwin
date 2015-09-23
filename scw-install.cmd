@@ -1,21 +1,38 @@
 @echo off
 :: install cygwin and scduply by Consult-MIT
+:: version 201509090
 setlocal ENABLEEXTENSIONS EnableDelayedExpansion
+:: for log
 set $s_fname=%~f0
 set $s_name=%~nx0
-set $loglevel=0
-::set $logfile=%public%\cygwin-install.log
+set $loglevel=3
+:: for standalone
+set standalone=False
 
+::critical options
+set wget=%src%wget.exe
+if not exist "%wget%" (
+    call :log error "not exist wget utility in %src%"
+    exit /b 1
+)
+:: versions of packages
+set scduply_v=mail_subj
+set scwin_v=ver2_2
+set scdw_v=master
 ::check admin rights
 reg.exe query "HKU\S-1-5-19">nul 2>nul || (
 	call :log message "this is not admin!"
 	call :UACPrompt
 	exit /b 0
 )
-
+::
 set src=%~dp0
+:: logfile, comment in not needed
+set $logfile=%src%\cygwin-install.log
+:: destination
 set dst=c:\cygwin
 set asm=%dst%\usr\local\src
+:: some variables depending on bit system
 set cygsetup=setup-x86.exe
 set msi_7z=7z922.msi
 set http_7z=http://downloads.sourceforge.net/project/sevenzip/7-Zip/9.22/7z922.msi?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fsevenzip%2Ffiles%2F7-Zip%2F9.22%2F7z922.msi
@@ -24,68 +41,125 @@ if defined ProgramFiles(x86) (
     set msi_7z=7z922-x64.msi
 	set cygsetup=setup-x86_64.exe
 )
-
+:: проверка битности
 call :winver
-
-
+:: установка
 call :install_all
-
 pause
 exit /b 0
 
 :: ==================================================================
 :: installing all things
 :install_all
-cd "%src%"
-if exist "%src%\%cygsetup%" ( call :cygok) else ( 
-   wget.exe "http://cygwin.com/%cygsetup%" 
-   call :cygok 
-   if not exist scduply.zip wget "https://github.com/skycover/scwin/zipball/master" --no-check-certificate -O scduply.zip
-	call :extract_scduply
-   call :log debug "call :postinst"
-   call :postinst
-)
+:: install cygwin
+REM call :install_cygwin 
+call :extract_scwin
+REM call :postinst
 exit /b 0
 :: ==================================================================
 
 :: ==================================================================
 :postinst
-	chdir "%src%"
-	call :log debug "%cd%"
-	if not exist "skycover-scduply-latest.tar.gz" wget --no-check-certificate https://github.com/skycover/scduply/tarball/master -O skycover-scduply-latest.tar.gz
-	if not exist "skycover-scdw-latest.tar.gz" wget --no-check-certificate https://github.com/skycover/scdw/tarball/master -O skycover-scdw-latest.tar.gz
-	if not exist "%asm%" mkdir "%asm%"
-	copy *.tar.gz "%asm%"
-	:: some fixes
-	if not exist "%asm%\scwin" mkdir "%asm%\scwin"
-	copy /y "%src%\vss_*" "%asm%\scwin\"
-	copy /y "%src%\sendmail" "%asm%\scwin\"
-	copy /y "%src%\mail_auth.py" "%asm%\scwin\"
-	copy /y "%src%\scwin_*" "%asm%\scwin\"
-	:: end of part
-	copy scw-postinst.sh "%asm%"
-	copy scdw.cmd "%asm%"
-	chdir %asm%
-	call :log debug "%cd%"
-	call :log debug "scw-postinst.sh"
-	cd "%src%"
-	%dst%\bin\bash "%src%\scw-postinst.sh" 
+call :log message "start module :postinst"
+cd "%src%\archives"
+if not exist "skycover-scduply.tar.gz" wget --no-check-certificate https://github.com/skycover/scduply/tarball/%scduply_v% -O skycover-scduply.tar.gz
+if not exist "skycover-scdw.tar.gz" wget --no-check-certificate https://github.com/skycover/scdw/tarball/%scdw_v% -O skycover-scdw.tar.gz
+if not exist "%asm%" mkdir "%asm%"
+call :log debug "start copy to /usr/"
+for %%a in (*.tar.gz) do (
+	xcopy "%%a" "%asm%\" /y || call :log error "error on copy %%a"
+)
+cd "%temp%\skycover-scwin-*"
+xcopy "*.tar.gz" "%asm%\" /y || call :log error "error on copy"
+:: some fixes
+if not exist "%asm%\scwin" mkdir "%asm%\scwin"
+cd "%asm%\scwin"
+xcopy /e /y /i "%src%\mail_module" .\mail_module
+xcopy /e /y /i "%src%\scdwin_modules" .\scdwin_modules
+:: end of part
+:: copy scw-postinst.sh "%asm%"
+cd "%src%"
+if defined $logfile (
+	%dst%\bin\bash "%src%\scw-postinst.sh" | mtee /d /t /+ %$logfile%
+) else (
+	%dst%\bin\bash "%src%\scw-postinst.sh"
+)
 exit /b 0
 :: ==================================================================
 
 :: ==================================================================
-:extract_scduply
-call :log message "trying extract scduply.zip"
+:check_7z
+call :log debug "start module :check_7z"
 if not exist "%programfiles%\7-zip" (
-	call :log debug "7z is't installed, install"
-    wget %http_7z% && %msi_7z% /quiet /norestart 
+	call :log message "7z is't installed, try install"
+	cd %src%
+    %wget% %http_7z% && %msi_7z% /quiet /norestart 
 )
 cd %programfiles%\7-zip || (
-	call :log error "7z is not installed, exit whith error!"
+	call :log error "7z is still not installed, exit whith error!"
 	exit /b 1
 )
-echo s | 7z e "%src%\scduply.zip" -o"%src%" 
+endlocal && set 7z=%cd%\7z.exe
+call :log debug "7z is !7z!"
 exit /b 0
+:: ==================================================================
+
+:: ==================================================================
+:extract_scwin
+call :log debug "start module :extract_scwin"
+call :check_7z
+cd "%temp%"
+for /d %%a in (*-scwin-*) do (
+	call :log debug "tryng remove %%a in %cd%"
+	rmdir /q /s %%a || call :log error "cant delete %%a"
+)
+call :download_scwin
+call :restore_scwin
+call :log debug "start cleaning %temp%"
+cd "%temp%"
+for /d %%a in (%tempscwin%) do (
+	call :log debug "tryng remove %%a in %cd%"
+	rmdir /q /s %%a || call :log error "cant delete %%a"
+)
+exit /b 0
+
+:restore_scwin
+:: rsync scwin
+call :log debug "start module :restore_scwin"
+if not exist "%src%\scwin.zip" (
+	call :log error "not exist '%src%\scwin.zip'"
+	exit /b 1
+)
+if defined $logfile (
+	"!7z!" x "%src%\scwin.zip" -o"%temp%" 2>&1 |  mtee /+ %$logfile% > %temp%\7z_scwin.log
+) else "!7z!" x "%src%\scwin.zip" -o%temp% > %temp%\7z_scwin.log
+:: костыль для определения имени извлеченной папки
+for /f "tokens=*" %%a in ('findstr "Extracting" %temp%\7z_scwin.log') do (
+	set tempscwin=%%a
+	goto :restore_scwin_c
+)
+:restore_scwin_c
+set tempscwin=!tempscwin:~12!
+call :log message "!tempscwin!"
+::get excludelist
+cd "%tempscwin%"
+call :log debug "sync %temp%\%tempscwin%"
+if defined $logfile (
+	robocopy "%temp%\%tempscwin%" "%src%\"  /XC /XO /S /R:10 | mtee /d /t /+ %$logfile%
+) else (
+	robocopy "%temp%\%tempscwin%" "%src%\"  /XC /XO /S /R:10
+)
+exit /b 0
+
+:download_scwin
+::download if something not exist
+call :log debug "start module download_scwin"
+if not exist "%src%\scwin.zip" (
+	call :log message "missing %src%\scwin.zip, download"
+	%wget% "https://github.com/skycover/scwin/zipball/%scwin_v%" --no-check-certificate -O "%src%\scwin.zip"
+)
+exit /b 0
+
 :: ==================================================================
 
 :: ==================================================================
@@ -99,16 +173,28 @@ exit /b 0
 :: ==================================================================
 
 :: ==================================================================
-:: install cygwin
-:cygok
-set packages="python,gnupg,gcc,gcc-core,cyglsa,librsync-devel,librsync1,wget,vim,ncftp,openssh,cron,dos2unix,python-setuptools" 
+:: install cygwin online
+:install_cygwin
+call :log debug "start module :install_cygwin"
+set packages="python,gnupg,gcc,gcc-core,cyglsa,librsync-devel,librsync1,wget,vim,ncftp,openssh,cron,dos2unix,python-setuptools,expect" 
 set server="http://cygwin.mirror.constant.com" 
 call :log message "trying install cygwin with this packages:"
 call :log %packages%
 call :log with mirror %server%
-cd "%src%"
-rem Use scw-install.cmd -L to install cygwin from local directory
-%cygsetup% %1 -l "%src%\cygwin" -R %dst% -q -P %packages% -s %server% -d
+if not exist "%src%\cygwin" mkdir "%src%\cygwin"
+cd "%src%\cygwin"
+call :log debug "%cd%"
+if not exist "%cd%\%cygsetup%" (
+	call :log debug "try dowload cygwin"
+	%wget% "http://cygwin.com/%cygsetup%" 
+)
+call :log message "start install"
+if defined $logfile (
+	%cygsetup% %1 -l "%src%\cygwin" -R %dst% -q -P %packages% -s %server% -d | mtee /d /t /+ %$logfile%
+) else (
+	%cygsetup% %1 -l "%src%\cygwin" -R %dst% -q -P %packages% -s %server% -d
+)
+call :log debug "ended installation of cygwin
 exit /b %errorlevel%
 :: ==================================================================
 
@@ -147,7 +233,6 @@ if defined $logfile (
 exit /b 0
 
 :log_printmessage [type] [msg]
-
 if "%$loglevel%"=="3" (
 		echo !msg!
 		exit /b 0
