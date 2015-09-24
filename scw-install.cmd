@@ -3,18 +3,13 @@
 :: version 201509090
 setlocal ENABLEEXTENSIONS EnableDelayedExpansion
 :: for log
+::
+set src=%~dp0
 set $s_fname=%~f0
 set $s_name=%~nx0
 set $loglevel=3
 :: for standalone
 set standalone=False
-
-::critical options
-set wget=%src%wget.exe
-if not exist "%wget%" (
-    call :log error "not exist wget utility in %src%"
-    exit /b 1
-)
 :: versions of packages
 set scduply_v=mail_subj
 set scwin_v=ver2_2
@@ -25,10 +20,16 @@ reg.exe query "HKU\S-1-5-19">nul 2>nul || (
 	call :UACPrompt
 	exit /b 0
 )
-::
-set src=%~dp0
+
+::critical options
+set wget=%src%wget.exe
+if not exist "%wget%" (
+    call :log error "not exist wget utility in %src%"
+    exit /b 1
+)
+
 :: logfile, comment in not needed
-set $logfile=%src%\cygwin-install.log
+set $logfile=%src%\scdw-install.log
 :: destination
 set dst=c:\cygwin
 set asm=%dst%\usr\local\src
@@ -52,9 +53,12 @@ exit /b 0
 :: installing all things
 :install_all
 :: install cygwin
-REM call :install_cygwin 
-call :extract_scwin
-REM call :postinst
+call :install_cygwin 
+call :extract_scwin || (
+	call :error "in module :extract_scwin"
+	exit /b 1
+)
+call :postinst
 exit /b 0
 :: ==================================================================
 
@@ -62,23 +66,20 @@ exit /b 0
 :postinst
 call :log message "start module :postinst"
 cd "%src%\archives"
-if not exist "skycover-scduply.tar.gz" wget --no-check-certificate https://github.com/skycover/scduply/tarball/%scduply_v% -O skycover-scduply.tar.gz
-if not exist "skycover-scdw.tar.gz" wget --no-check-certificate https://github.com/skycover/scdw/tarball/%scdw_v% -O skycover-scdw.tar.gz
+if not exist "skycover-scduply.tar.gz" "%wget%" --no-check-certificate https://github.com/skycover/scduply/tarball/%scduply_v% -O skycover-scduply.tar.gz
+if not exist "skycover-scdw.tar.gz" "%wget%" --no-check-certificate https://github.com/skycover/scdw/tarball/%scdw_v% -O skycover-scdw.tar.gz
 if not exist "%asm%" mkdir "%asm%"
 call :log debug "start copy to /usr/"
 for %%a in (*.tar.gz) do (
 	xcopy "%%a" "%asm%\" /y || call :log error "error on copy %%a"
 )
-cd "%temp%\skycover-scwin-*"
-xcopy "*.tar.gz" "%asm%\" /y || call :log error "error on copy"
 :: some fixes
 if not exist "%asm%\scwin" mkdir "%asm%\scwin"
 cd "%asm%\scwin"
-xcopy /e /y /i "%src%\mail_module" .\mail_module
-xcopy /e /y /i "%src%\scdwin_modules" .\scdwin_modules
+xcopy /e /y /i "%src%\mail_module" "%asm%\scwin\mail_module\"
+xcopy /e /y /i "%src%\scdwin_modules" "%asm%\scwin\scdwin_modules\"
 :: end of part
 :: copy scw-postinst.sh "%asm%"
-cd "%src%"
 if defined $logfile (
 	%dst%\bin\bash "%src%\scw-postinst.sh" | mtee /d /t /+ %$logfile%
 ) else (
@@ -99,7 +100,7 @@ cd %programfiles%\7-zip || (
 	call :log error "7z is still not installed, exit whith error!"
 	exit /b 1
 )
-endlocal && set 7z=%cd%\7z.exe
+set 7z=%cd%\7z.exe
 call :log debug "7z is !7z!"
 exit /b 0
 :: ==================================================================
@@ -107,17 +108,24 @@ exit /b 0
 :: ==================================================================
 :extract_scwin
 call :log debug "start module :extract_scwin"
-call :check_7z
-cd "%temp%"
-for /d %%a in (*-scwin-*) do (
+call :check_7z || (
+	call :log error "in module :check_7z"
+	exit /b 1
+)
+call :log message "start cleaning %temp% from skycover-scwin"
+for /d %%a in (%temp%\skycover-scwin-*) do (
 	call :log debug "tryng remove %%a in %cd%"
 	rmdir /q /s %%a || call :log error "cant delete %%a"
 )
-call :download_scwin
-call :restore_scwin
-call :log debug "start cleaning %temp%"
-cd "%temp%"
-for /d %%a in (%tempscwin%) do (
+call :download_scwin || (
+	call :log error "in module :download_scwin, exit"
+	exit /b 1
+)
+call :restore_scwin || (
+	call :log error "in module :restore_scwin, exit"
+	exit /b 1
+)
+for /d %%a in (%temp%\skycover-scwin-*) do (
 	call :log debug "tryng remove %%a in %cd%"
 	rmdir /q /s %%a || call :log error "cant delete %%a"
 )
@@ -127,27 +135,28 @@ exit /b 0
 :: rsync scwin
 call :log debug "start module :restore_scwin"
 if not exist "%src%\scwin.zip" (
-	call :log error "not exist '%src%\scwin.zip'"
+	call :log error "! not exist '%src%\scwin.zip'"
 	exit /b 1
 )
 if defined $logfile (
-	"!7z!" x "%src%\scwin.zip" -o"%temp%" 2>&1 |  mtee /+ %$logfile% > %temp%\7z_scwin.log
-) else "!7z!" x "%src%\scwin.zip" -o%temp% > %temp%\7z_scwin.log
-:: костыль дл€ определени€ имени извлеченной папки
-for /f "tokens=*" %%a in ('findstr "Extracting" %temp%\7z_scwin.log') do (
+	"!7z!" x "%src%\scwin.zip" -o"%temp%" 2>&1 |  mtee /+ %$logfile%
+) else "!7z!" x "%src%\scwin.zip" -o%temp% 2>&1
+set tempscwin=
+for /d %%a in (%temp%\skycover-scwin-*) do (
 	set tempscwin=%%a
 	goto :restore_scwin_c
 )
 :restore_scwin_c
-set tempscwin=!tempscwin:~12!
-call :log message "!tempscwin!"
+if "%tempscwin%"=="" (
+	call :log error "not exist scwintemp"
+	exit /b 1
+)
+call :log debug "scwintemp = !tempscwin!"
 ::get excludelist
-cd "%tempscwin%"
-call :log debug "sync %temp%\%tempscwin%"
-if defined $logfile (
-	robocopy "%temp%\%tempscwin%" "%src%\"  /XC /XO /S /R:10 | mtee /d /t /+ %$logfile%
-) else (
-	robocopy "%temp%\%tempscwin%" "%src%\"  /XC /XO /S /R:10
+call :log message "sync %temp%\%tempscwin%"
+call :run_program robocopy "%tempscwin%" "%src%\"  /XC /XO /S /R:10 || (
+	call :log error "on sync src"
+	exit /b 1
 )
 exit /b 0
 
@@ -156,7 +165,10 @@ exit /b 0
 call :log debug "start module download_scwin"
 if not exist "%src%\scwin.zip" (
 	call :log message "missing %src%\scwin.zip, download"
-	%wget% "https://github.com/skycover/scwin/zipball/%scwin_v%" --no-check-certificate -O "%src%\scwin.zip"
+	call :run_program "%wget%" "https://github.com/skycover/scwin/zipball/%scwin_v%" --no-check-certificate -O "%src%\scwin.zip" || (
+		call :log error "on dowload scwin.zip, exit"
+		exit /b 1
+	)
 )
 exit /b 0
 
@@ -189,11 +201,7 @@ if not exist "%cd%\%cygsetup%" (
 	%wget% "http://cygwin.com/%cygsetup%" 
 )
 call :log message "start install"
-if defined $logfile (
-	%cygsetup% %1 -l "%src%\cygwin" -R %dst% -q -P %packages% -s %server% -d | mtee /d /t /+ %$logfile%
-) else (
-	%cygsetup% %1 -l "%src%\cygwin" -R %dst% -q -P %packages% -s %server% -d
-)
+call :run_program %cygsetup% %1 -l "%src%\cygwin" -R %dst% -q -P %packages% -s %server% -d
 call :log debug "ended installation of cygwin
 exit /b %errorlevel%
 :: ==================================================================
@@ -203,6 +211,15 @@ exit /b %errorlevel%
 :: запуск самого себ€ от имени администратора
 mshta "vbscript:CreateObject("Shell.Application").ShellExecute("%$s_fname%", "", "%src%", "runas", 1) & Close()"
 exit /b
+:: ==================================================================
+
+:: ==================================================================
+:run_program
+call :log message "start program %*"
+if defined $logfile (
+	%* | mtee /d /t /+ %$logfile%
+) else %*
+exit /b %errorlevel%
 :: ==================================================================
 
 :: ==================================================================
