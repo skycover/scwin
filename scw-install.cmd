@@ -27,6 +27,17 @@ if not exist "%wget%" (
     call :log error "not exist wget utility in %src%"
     exit /b 1
 )
+set mtee=%src%mtee.exe
+if not exist "%mtee%" (
+    call :log error "not exist mtee utility in %src%"
+    exit /b 1
+)
+set 7z=%programfiles%\7-zip\7z.exe
+if not exist "%programfiles%\7-zip" (
+	call :log message "7-zip is not installed, please - install it."
+	echo "7-zip is not installed, please - install it."
+	exit /b 1 
+)
 
 :: logfile, comment in not needed
 set $logfile=%src%\scdw-install.log
@@ -35,11 +46,7 @@ set dst=c:\cygwin
 set asm=%dst%\usr\local\src
 :: some variables depending on bit system
 set cygsetup=setup-x86.exe
-set msi_7z=7z922.msi
-set http_7z=http://downloads.sourceforge.net/project/sevenzip/7-Zip/9.22/7z922.msi?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fsevenzip%2Ffiles%2F7-Zip%2F9.22%2F7z922.msi
 if defined ProgramFiles(x86) (
-    set http_7z=http://downloads.sourceforge.net/project/sevenzip/7-Zip/9.22/7z922-x64.msi?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fsevenzip%2Ffiles%2F7-Zip%2F9.22%2F7z922-x64.msi%
-    set msi_7z=7z922-x64.msi
 	set cygsetup=setup-x86_64.exe
 )
 :: проверка битности
@@ -65,7 +72,7 @@ exit /b 0
 :: ==================================================================
 :postinst
 call :log message "start module :postinst"
-cd "%src%\archives"
+cd /d "%src%\archives"
 if not exist "skycover-scduply.tar.gz" "%wget%" --no-check-certificate https://github.com/skycover/scduply/tarball/%scduply_v% -O skycover-scduply.tar.gz
 if not exist "skycover-scdw.tar.gz" "%wget%" --no-check-certificate https://github.com/skycover/scdw/tarball/%scdw_v% -O skycover-scdw.tar.gz
 if not exist "%asm%" mkdir "%asm%"
@@ -75,43 +82,21 @@ for %%a in (*.tar.gz) do (
 )
 :: some fixes
 if not exist "%asm%\scwin" mkdir "%asm%\scwin"
-cd "%asm%\scwin"
+cd /d "%asm%\scwin"
 xcopy /e /y /i "%src%\mail_module" "%asm%\scwin\mail_module\"
 xcopy /e /y /i "%src%\scdwin_modules" "%asm%\scwin\scdwin_modules\"
 :: end of part
 :: copy scw-postinst.sh "%asm%"
-if defined $logfile (
-	%dst%\bin\bash "%src%\scw-postinst.sh" | mtee /d /t /+ %$logfile%
-) else (
-	%dst%\bin\bash "%src%\scw-postinst.sh"
-)
-exit /b 0
-:: ==================================================================
+call :run_program %dst%\bin\bash "%src%\scw-postinst.sh"
+call :create_webscript
+call :create_shortcut "%%userprofile%%\desktop\scdw.lnk" "%asm%\scwin\scdwin_modules\scdw.bat"  "scduply web interface" 
 
-:: ==================================================================
-:check_7z
-call :log debug "start module :check_7z"
-if not exist "%programfiles%\7-zip" (
-	call :log message "7z is't installed, try install"
-	cd %src%
-    %wget% %http_7z% && %msi_7z% /quiet /norestart 
-)
-cd %programfiles%\7-zip || (
-	call :log error "7z is still not installed, exit whith error!"
-	exit /b 1
-)
-set 7z=%cd%\7z.exe
-call :log debug "7z is !7z!"
 exit /b 0
 :: ==================================================================
 
 :: ==================================================================
 :extract_scwin
 call :log debug "start module :extract_scwin"
-call :check_7z || (
-	call :log error "in module :check_7z"
-	exit /b 1
-)
 call :log message "start cleaning %temp% from skycover-scwin"
 for /d %%a in (%temp%\skycover-scwin-*) do (
 	call :log debug "tryng remove %%a in %cd%"
@@ -138,9 +123,7 @@ if not exist "%src%\scwin.zip" (
 	call :log error "! not exist '%src%\scwin.zip'"
 	exit /b 1
 )
-if defined $logfile (
-	"!7z!" x "%src%\scwin.zip" -o"%temp%" 2>&1 |  mtee /+ %$logfile%
-) else "!7z!" x "%src%\scwin.zip" -o%temp% 2>&1
+call :run_program "!7z!" x "%src%\scwin.zip" -o"%temp%" 
 set tempscwin=
 for /d %%a in (%temp%\skycover-scwin-*) do (
 	set tempscwin=%%a
@@ -188,22 +171,60 @@ exit /b 0
 :: install cygwin online
 :install_cygwin
 call :log debug "start module :install_cygwin"
-set packages="python,gnupg,gcc,gcc-core,cyglsa,librsync-devel,librsync1,wget,vim,ncftp,openssh,cron,dos2unix,python-setuptools,expect" 
-set server="http://cygwin.mirror.constant.com" 
+set gcc=cygwin64-gcc-core
+if defined ProgramFiles(x86) set gcc=mingw64-x86_64-gcc-core
+set packages=python,gnupg,gcc,gcc-core,cyglsa,librsync-devel,librsync1,%gcc%,wget,vim,ncftp,openssh,cron,dos2unix,python-setuptools,expect
+set server=http://cygwin.mirror.constant.com
 call :log message "trying install cygwin with this packages:"
 call :log %packages%
 call :log with mirror %server%
 if not exist "%src%\cygwin" mkdir "%src%\cygwin"
-cd "%src%\cygwin"
+cd /d "%src%\cygwin"
 call :log debug "%cd%"
 if not exist "%cd%\%cygsetup%" (
 	call :log debug "try dowload cygwin"
-	%wget% "http://cygwin.com/%cygsetup%" 
+	call :run_program "%wget%" "http://cygwin.com/%cygsetup%" 
 )
 call :log message "start install"
-call :run_program %cygsetup% %1 -l "%src%\cygwin" -R %dst% -q -P %packages% -s %server% -d
-call :log debug "ended installation of cygwin
+call :run_program %cygsetup% -l "%src%\cygwin" -R "%dst%" -q -P "%packages%" -s "%server%" -d
+call :create_shortcut "%%userprofile%%\desktop\CygwinTerminal.lnk" "C:\cygwin\bin\mintty.exe" " " "-i /Cygwin-Terminal.ico -"
+call :log debug "ended installation of cygwin"
 exit /b %errorlevel%
+:: ==================================================================
+
+:: ==================================================================
+:create_shortcut
+:: [destination] [target] [description] [parameters]
+call :log message "start module :create_shortcut"
+call :log debug %*
+set cs_destination=%~1
+set cs_target=%~2
+set cs_description=%~3
+set cs_parameters=%~4
+set vbs_script=%temp%\%random%%random%%random%.vbs
+echo %vbs_script%
+(
+   echo Set objShell = WScript.CreateObject^("WScript.Shell"^)
+   echo Set lnk = objShell.CreateShortcut^("!cs_destination!"^)
+   echo lnk.TargetPath = objShell.ExpandEnvironmentStrings^("!cs_target!"^)
+   echo lnk.Arguments = "!cs_parameters!"
+   echo lnk.Description = "!cs_description!"
+   echo lnk.Save
+) > %vbs_script%
+cscript //nologo %vbs_script%
+del /f /q "%vbs_script%"
+exit /b 0
+:: ==================================================================
+:create_webscript
+call :log message "start module :create_webscript"
+(
+	echo @echo off
+	echo :: start scdw + browser
+	echo cd "%dst%\bin"
+	echo start bash.exe -l -c scdw
+	echo explorer.exe "http:\\localhost:8088"
+) > %asm%\scwin\scdwin_modules\scdw.bat
+exit /b 0
 :: ==================================================================
 
 :: ==================================================================
@@ -217,7 +238,8 @@ exit /b
 :run_program
 call :log message "start program %*"
 if defined $logfile (
-	%* | mtee /d /t /+ %$logfile%
+	echo %*| %mtee% /d /t /+ %$logfile%
+	%* 2>&1| %mtee% /d /t /+ %$logfile%
 ) else %*
 exit /b %errorlevel%
 :: ==================================================================

@@ -13,8 +13,8 @@ logfile="$1"
 #
 
 
-echo "You just installed Django's auth system, which means you don't have any superusers defined."
 ask_username() {
+	echo "You just installed Django's auth system, which means you don't have any superusers defined."
 	while true;do
 		read -p "Username (Leave blank to use '$s_user'):" answer
 		case $answer in
@@ -88,7 +88,7 @@ cd /usr/local/src/extract
 			echo "in folder $(pwd)"
 			[ -a setup.py ] && (
 				echo "trying install python script"
-				python ./setup.py install
+				python ./setup.py install 2>&1
 			)
 			[ -a install.sh ] && (
 				echo "trying install shell script"
@@ -107,7 +107,7 @@ expect eof
 send_user "\n"
 '
 				) || ./install.sh
-			)
+			) 2>&1
 			cd ..
 		)
 	done
@@ -156,7 +156,7 @@ echo "ulimit -n 1024" >>/etc/profile
 #  to connect SkyCover Backup service
 #
 
-ssh-keygen -b 2048 -t ecdsa
+ssh-keygen -b 2048 -t rsa
 echo|ssh-keygen -e >exported.pub
 
 #
