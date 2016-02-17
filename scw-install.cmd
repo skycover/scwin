@@ -11,9 +11,11 @@ set $loglevel=3
 :: for standalone
 set standalone=False
 :: versions of packages
-set scduply_v=mail_subj
+set scduply_v=master
 set scwin_v=ver2_2
 set scdw_v=master
+:: scdw needed? set scdw_needed to True 
+set scdw_needed=False
 ::check admin rights
 reg.exe query "HKU\S-1-5-19">nul 2>nul || (
 	call :log message "this is not admin!"
@@ -36,6 +38,7 @@ set 7z=%programfiles%\7-zip\7z.exe
 if not exist "%programfiles%\7-zip" (
 	call :log message "7-zip is not installed, please - install it."
 	echo "7-zip is not installed, please - install it."
+	pause
 	exit /b 1 
 )
 
@@ -73,8 +76,14 @@ exit /b 0
 :postinst
 call :log message "start module :postinst"
 cd /d "%src%\archives"
-if not exist "skycover-scduply.tar.gz" "%wget%" --no-check-certificate https://github.com/skycover/scduply/tarball/%scduply_v% -O skycover-scduply.tar.gz
-if not exist "skycover-scdw.tar.gz" "%wget%" --no-check-certificate https://github.com/skycover/scdw/tarball/%scdw_v% -O skycover-scdw.tar.gz
+if not exist "skycover-scduply.tar.gz" call :run_program "%wget%" --no-check-certificate "https://github.com/skycover/scduply/tarball/%scduply_v%" -O skycover-scduply.tar.gz
+if /i "%scdw_needed%" == "True" (
+	call :log debug "scdw needed, download if not downloaded"
+	if not exist "skycover-scdw.tar.gz" (
+		call :log debug "start download scdw"
+		call :run_program "%wget%" --no-check-certificate "https://github.com/skycover/scdw/tarball/%scdw_v%" -O skycover-scdw.tar.gz
+	)
+)
 if not exist "%asm%" mkdir "%asm%"
 call :log debug "start copy to /usr/"
 for %%a in (*.tar.gz) do (
@@ -88,9 +97,10 @@ xcopy /e /y /i "%src%\scdwin_modules" "%asm%\scwin\scdwin_modules\"
 :: end of part
 :: copy scw-postinst.sh "%asm%"
 call :run_program %dst%\bin\bash "%src%\scw-postinst.sh"
-call :create_webscript
-call :create_shortcut "%%userprofile%%\desktop\scdw.lnk" "%asm%\scwin\scdwin_modules\scdw.bat"  "scduply web interface" 
-
+if /i "%scdw_needed%" == "True" (
+	call :create_webscript
+	call :create_shortcut "%%userprofile%%\desktop\scdw.lnk" "%asm%\scwin\scdwin_modules\scdw.bat"  "scduply web interface" 
+)
 exit /b 0
 :: ==================================================================
 

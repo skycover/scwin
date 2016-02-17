@@ -118,6 +118,10 @@ cd /usr/local/src
 [ ! -d "extract" ] && mkdir extract 
 cd extract
 install_modules
+cp -f /usr/local/scwin/scdwin_modules/scwin_* /usr/local/bin/
+[ ! -d /usr/local/lib/scwin ] && mkdir /usr/local/lib/scwin
+cp -f /usr/local/scwin/scdwin_modules/vss_p* /usr/local/lib/scwin/
+
 # [ ! -z "$logfile" ] && (
 	# install_modules 2>&1 |tee -a "$logfile"
 # ) || install_modules
