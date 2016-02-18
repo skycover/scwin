@@ -147,7 +147,7 @@ if "%tempscwin%"=="" (
 call :log debug "scwintemp = !tempscwin!"
 ::get excludelist
 call :log message "sync %temp%\%tempscwin%"
-call :run_program robocopy "%tempscwin%" "%src%\"  /XC /XO /S /R:10 || (
+robocopy "%tempscwin%" "%src%\"  /XC /XO /S /R:10 || (
 	call :log error "on sync src"
 	exit /b 1
 )
