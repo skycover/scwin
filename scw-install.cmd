@@ -65,7 +65,7 @@ exit /b 0
 :: install cygwin
 call :install_cygwin 
 call :extract_scwin || (
-	call :error "in module :extract_scwin"
+	call :log error "in module :extract_scwin"
 	exit /b 1
 )
 call :postinst
@@ -149,7 +149,7 @@ call :log debug "scwintemp = !tempscwin!"
 call :log message "sync %temp%\%tempscwin%"
 robocopy "%tempscwin%" "%src%\"  /XC /XO /S /R:10 || (
 	call :log error "on sync src"
-	exit /b 1
+	exit /b 0
 )
 exit /b 0
 
