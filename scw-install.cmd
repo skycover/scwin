@@ -1,6 +1,6 @@
 @echo off
 :: install cygwin and scduply by Consult-MIT
-:: version 201509090
+:: version 201604081a
 setlocal ENABLEEXTENSIONS EnableDelayedExpansion
 :: for log
 ::
@@ -22,25 +22,6 @@ reg.exe query "HKU\S-1-5-19">nul 2>nul || (
 	call :log message "this is not admin!"
 	call :UACPrompt
 	exit /b 0
-)
-
-::critical options
-set wget=%src%wget.exe
-if not exist "%wget%" (
-    call :log error "not exist wget utility in %src%"
-    exit /b 1
-)
-set mtee=%src%mtee.exe
-if not exist "%mtee%" (
-    call :log error "not exist mtee utility in %src%"
-    exit /b 1
-)
-set 7z=%programfiles%\7-zip\7z.exe
-if not exist "%programfiles%\7-zip" (
-	call :log message "7-zip is not installed, please - install it."
-	echo "7-zip is not installed, please - install it."
-	pause
-	exit /b 1 
 )
 
 :: logfile, comment in not needed
@@ -109,7 +90,7 @@ echo adoStream.SaveToFile target
 echo adoStream.Close
 echo.
 )>"!vbs_script!"
-cscript //nologo !vbs_script! "%~1" "%~2"
+cscript //nologo "!vbs_script!" "%~1" "%~2"
 del /f /q "!vbs_script!"
 exit /b 0
 :: ==================================================================
@@ -292,8 +273,8 @@ exit /b
 :run_program
 call :log message "start program %*"
 if defined $logfile (
-	echo %*| %mtee% /d /t /+ %$logfile%
-	%* 2>&1| %mtee% /d /t /+ %$logfile%
+	echo %* >>%$logfile% 2>>%$logfile%
+	%* >>%$logfile% 2>>%$logfile%
 ) else %*
 exit /b %errorlevel%
 :: ==================================================================
