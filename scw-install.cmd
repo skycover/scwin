@@ -12,10 +12,11 @@ set $loglevel=3
 set standalone=False
 :: versions of packages
 set scduply_v=master
-set scwin_v=ver2_2
+set scwin_v=master
 set scdw_v=master
 :: scdw needed? set scdw_needed to True 
 set scdw_needed=False
+set testing=True
 ::check admin rights
 reg.exe query "HKU\S-1-5-19">nul 2>nul || (
 	call :log message "this is not admin!"
@@ -63,12 +64,53 @@ exit /b 0
 :: installing all things
 :install_all
 :: install cygwin
-call :install_cygwin 
-call :extract_scwin || (
-	call :log error "in module :extract_scwin"
-	exit /b 1
-)
-call :postinst
+rem call :install_cygwin 
+cd /d "%src%"
+call :wget_vbscript "https://github.com/skycover/scduply/tarball/%scduply_v%" "skycover-scduply.tar.gz"
+rem call :extract_scwin || (
+rem	call :log error "in module :extract_scwin"
+rem	exit /b 1
+rem )
+rem call :postinst
+exit /b 0
+:: ==================================================================
+
+:: ==================================================================
+:wget_vbscript
+set vbs_script=%temp%\%random%%random%%random%.vbs
+(
+echo Option Explicit
+echo Dim args, http, fileSystem, adoStream, url, target, status
+echo.
+echo Set args = Wscript.Arguments
+echo Set http = CreateObject^("WinHttp.WinHttpRequest.5.1"^)
+echo url = args^(0^)
+echo target = args^(1^)
+echo WScript.Echo "Getting '" ^& target ^& "' from '" ^& url ^& "'..."
+echo.
+echo http.Open "GET", url, False
+echo http.Send
+echo status = http.Status
+echo.
+echo If status ^<^> 200 Then
+echo    WScript.Echo "FAILED to download: HTTP Status " ^& status
+echo    WScript.Quit 1
+echo End If
+echo.
+echo Set adoStream = CreateObject^("ADODB.Stream"^)
+echo adoStream.Open
+echo adoStream.Type = 1
+echo adoStream.Write http.ResponseBody
+echo adoStream.Position = 0
+echo.
+echo Set fileSystem = CreateObject^("Scripting.FileSystemObject"^)
+echo If fileSystem.FileExists^(target^) Then fileSystem.DeleteFile target
+echo adoStream.SaveToFile target
+echo adoStream.Close
+echo.
+)>"!vbs_script!"
+cscript //nologo !vbs_script! "%~1" "%~2"
+del /f /q "!vbs_script!"
 exit /b 0
 :: ==================================================================
 
@@ -224,6 +266,8 @@ echo %vbs_script%
 cscript //nologo %vbs_script%
 del /f /q "%vbs_script%"
 exit /b 0
+:: ==================================================================
+
 :: ==================================================================
 :create_webscript
 call :log message "start module :create_webscript"
