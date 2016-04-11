@@ -1,34 +1,45 @@
+@if (@X)==(@Y) @end /* Harmless hybrid line that begins a JScript comment
 @echo off
+
+::This block of code handles the TEE by calling the internal JScript code
+if "%~1"=="_TEE_" (
+  cscript //E:JScript //nologo "%~f0" %2 %3
+  exit /b
+)
+
 :: install cygwin and scduply by Consult-MIT
 :: version 201604081a
 setlocal ENABLEEXTENSIONS EnableDelayedExpansion
-:: for log
+if "%2" equ ":TeeProcess" goto TeeProcess
+
 ::
 set src=%~dp0
 set $s_fname=%~f0
 set $s_name=%~nx0
 set $loglevel=3
+
 :: for standalone
 set standalone=False
+
 :: versions of packages
-set scduply_v=master
 set scwin_v=master
-set scdw_v=master
-:: scdw needed? set scdw_needed to True 
-set scdw_needed=False
-set testing=True
+
 ::check admin rights
-reg.exe query "HKU\S-1-5-19">nul 2>nul || (
-	call :log message "this is not admin!"
-	call :UACPrompt
-	exit /b 0
-)
+rem reg.exe query "HKU\S-1-5-19">nul 2>nul || (
+rem 	call :log message "this is not admin!"
+rem 	call :UACPrompt
+rem 	exit /b 0
+rem )
 
 :: logfile, comment in not needed
 set $logfile=%src%\scdw-install.log
+
+if "%2" equ ":TeeProcess" goto TeeProcess
+
 :: destination
 set dst=c:\cygwin
 set asm=%dst%\usr\local\src
+
 :: some variables depending on bit system
 set cygsetup=setup-x86.exe
 if defined ProgramFiles(x86) (
@@ -45,9 +56,11 @@ exit /b 0
 :: installing all things
 :install_all
 :: install cygwin
+echo "http://cygwin.org/%cygsetup%"
+call :wget_bash "http://cygwin.org/%cygsetup%" "%src%%cygsetup%"
 rem call :install_cygwin 
-cd /d "%src%"
-call :wget_vbscript "https://github.com/skycover/scduply/tarball/%scduply_v%" "skycover-scduply.tar.gz"
+rem call :wget_vbscript "https://github.com/skycover/scduply/tarball/%scduply_v%" "skycover-scduply.tar.gz"
+rem call :create_shortcut "%%userprofile%%\desktop\CygwinTerminal.lnk" "C:\cygwin\bin\mintty.exe" " " "-i /Cygwin-Terminal.ico -"
 rem call :extract_scwin || (
 rem	call :log error "in module :extract_scwin"
 rem	exit /b 1
@@ -57,7 +70,32 @@ exit /b 0
 :: ==================================================================
 
 :: ==================================================================
+:wget_bash
+:: [url] [destination]
+call :log debug "start bash wget"
+call :log debug "source %~1"
+call :log debug "destination %~2"
+call :run_program %dst%\bin\bash.exe -l -c 'wget --no-check-certificate  "%~1" -O "%~2"'
+exit /b !errorlevel!
+:: ==================================================================
+
+
+:: ==================================================================
+:wget_powershell
+:: [url] [destination]
+call :log debug "start powershellWGET"
+call :log debug "source %~1"
+call :log debug "destination %~2"
+powershell -version 1.0 -command "& {$wget = New-Object System.Net.WebClient; $wget.DownloadFile('%~1','%~2')}"
+exit /b !errorlevel!
+:: ==================================================================
+
+:: ==================================================================
 :wget_vbscript
+:: [url] [destination]
+call :log debug "start VBWget"
+call :log debug "source %~1"
+call :log debug "destination %~2"
 set vbs_script=%temp%\%random%%random%%random%.vbs
 (
 echo Option Explicit
@@ -92,7 +130,17 @@ echo.
 )>"!vbs_script!"
 cscript //nologo "!vbs_script!" "%~1" "%~2"
 del /f /q "!vbs_script!"
-exit /b 0
+exit /b !errorlevel!
+:: ==================================================================
+
+:: ==================================================================
+:wget_external
+:: [url] [destination]
+call :log debug "start external wget"
+call :log debug "source %~1"
+call :log debug "destination %~2"
+call :run_program %wget% --no-check-certificate "%~1" -O "%~2"
+exit /b !errorlevel!
 :: ==================================================================
 
 :: ==================================================================
@@ -128,69 +176,6 @@ exit /b 0
 :: ==================================================================
 
 :: ==================================================================
-:extract_scwin
-call :log debug "start module :extract_scwin"
-call :log message "start cleaning %temp% from skycover-scwin"
-for /d %%a in (%temp%\skycover-scwin-*) do (
-	call :log debug "tryng remove %%a in %cd%"
-	rmdir /q /s %%a || call :log error "cant delete %%a"
-)
-call :download_scwin || (
-	call :log error "in module :download_scwin, exit"
-	exit /b 1
-)
-call :restore_scwin || (
-	call :log error "in module :restore_scwin, exit"
-	exit /b 1
-)
-for /d %%a in (%temp%\skycover-scwin-*) do (
-	call :log debug "tryng remove %%a in %cd%"
-	rmdir /q /s %%a || call :log error "cant delete %%a"
-)
-exit /b 0
-
-:restore_scwin
-:: rsync scwin
-call :log debug "start module :restore_scwin"
-if not exist "%src%\scwin.zip" (
-	call :log error "! not exist '%src%\scwin.zip'"
-	exit /b 1
-)
-call :run_program "!7z!" x "%src%\scwin.zip" -o"%temp%" 
-set tempscwin=
-for /d %%a in (%temp%\skycover-scwin-*) do (
-	set tempscwin=%%a
-	goto :restore_scwin_c
-)
-:restore_scwin_c
-if "%tempscwin%"=="" (
-	call :log error "not exist scwintemp"
-	exit /b 1
-)
-call :log debug "scwintemp = !tempscwin!"
-::get excludelist
-call :log message "sync %temp%\%tempscwin%"
-robocopy "%tempscwin%" "%src%\"  /XC /XO /S /R:10 || (
-	call :log error "on sync src"
-	exit /b 0
-)
-exit /b 0
-
-:download_scwin
-::download if something not exist
-call :log debug "start module download_scwin"
-if not exist "%src%\scwin.zip" (
-	call :log message "missing %src%\scwin.zip, download"
-	call :run_program "%wget%" "https://github.com/skycover/scwin/zipball/%scwin_v%" --no-check-certificate -O "%src%\scwin.zip" || (
-		call :log error "on dowload scwin.zip, exit"
-		exit /b 1
-	)
-)
-exit /b 0
-
-:: ==================================================================
-
-:: ==================================================================
 :winver
 :: new version of getting wininfo
 for /f "tokens=2*" %%a in ('Reg QUERY "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion" /v ProductName^|find /i "REG"') do set winver=%%b
@@ -223,6 +208,53 @@ call :run_program %cygsetup% -l "%src%\cygwin" -R "%dst%" -q -P "%packages%" -s 
 call :create_shortcut "%%userprofile%%\desktop\CygwinTerminal.lnk" "C:\cygwin\bin\mintty.exe" " " "-i /Cygwin-Terminal.ico -"
 call :log debug "ended installation of cygwin"
 exit /b %errorlevel%
+:: ==================================================================
+
+:: ==================================================================
+:: native tee method from http://stackoverflow.com/questions/11239924/windows-batch-tee-command
+:lock
+set "teeTemp=%temp%\tee%time::=_%"
+2>nul (
+  9>"%teeTemp%.lock" (
+    for %%F in ("%teeTemp%.test") do (
+      set "yes="
+      pushd "%temp%"
+      copy /y nul "%%~nxF" >nul
+      for /f "tokens=2 delims=(/" %%A in (
+        '^<nul copy /-y nul "%%~nxF"'
+      ) do if not defined yes set "yes=%%A"
+      popd
+    )
+    for /f %%A in ("!yes!") do (
+      find /n /v ""
+      echo :END
+      echo %%A
+    ) >"%teeTemp%.tmp" | <"%teeTemp%.tmp" "%~f0" :tee %* 7>&1 >nul
+    (call )
+  ) || goto :lock
+)
+del "%teeTemp%.lock" "%teeTemp%.tmp" "%teeTemp%.test"
+exit /b
+
+:tee
+set "redirect=>"
+if "%~3" equ "+" set "redirect=>>"
+8%redirect% %2 (call :tee2)
+set "redirect="
+(echo ERROR: %~nx0 unable to open %2)>&7
+
+:tee2
+for /l %%. in () do (
+  set "ln="
+  set /p "ln="
+  if defined ln (
+    if "!ln:~0,4!" equ ":END" exit
+    set "ln=!ln:*]=!"
+    (echo(!ln!)>&7
+    if defined redirect (echo(!ln!)>&8
+  )
+)
+exit /b 0
 :: ==================================================================
 
 :: ==================================================================
@@ -274,7 +306,7 @@ exit /b
 call :log message "start program %*"
 if defined $logfile (
 	echo %* >>%$logfile% 2>>%$logfile%
-	%* >>%$logfile% 2>>%$logfile%
+	%* 2>&1 | %$s_fname% _TEE_ %$logfile% 1
 ) else %*
 exit /b %errorlevel%
 :: ==================================================================
@@ -319,3 +351,15 @@ if "%$loglevel%"=="3" (
 ) else exit /b 0
 exit /b 0
 :: ==================================================================
+
+----- End of JScript comment, beginning of normal JScript  ------------------*/
+var fso = new ActiveXObject("Scripting.FileSystemObject");
+var mode=2;
+if (WScript.Arguments.Count()==2) {mode=8;}
+var out = fso.OpenTextFile(WScript.Arguments(0),mode,true);
+var chr;
+while( !WScript.StdIn.AtEndOfStream ) {
+  chr=WScript.StdIn.Read(1);
+  WScript.StdOut.Write(chr);
+  out.Write(chr);
+}

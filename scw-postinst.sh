@@ -8,12 +8,38 @@ s_user=$USERNAME
 s_mail="admin@somemail.dom"
 logfile="$1"
 
+
+packages_file[0]="get-pip.py";packages_version[0]="";packages_http[0]="https://bootstrap.pypa.io/get-pip.py"
+packages_file[1]="scduply.tar.gz"
+packages_file[2]="scwin.tar.gz"
+packages_file[3]="scdw.tar.gz"
+
+#versions of packages
+
+packages_version[1]="master"
+packages_version[2]="master"
+packages_version[3]="master"
+
+#http of packages
+
+packages_http[1]="https://github.com/skycover/scduply/tarball/$scduply_version"
+packages_http[2]="https://github.com/skycover/scwin/tarball/$scwin_version"
+packages_http[3]="https://github.com/skycover/scdw/tarball/$scdw_version"
+
+#parameters of packages
+parameter_http[0]=""
+parameter_http[1]=""
+parameter_http[2]=""
+parameter_http[3]=""
+
 #
 # Install extra packages
 #
 
+pip_packages="pycrypto ecdsa lockfile paramiko pexpect"
 
 ask_username() {
+	# for scdw
 	echo "You just installed Django's auth system, which means you don't have any superusers defined."
 	while true;do
 		read -p "Username (Leave blank to use '$s_user'):" answer
@@ -30,7 +56,9 @@ ask_username() {
 			esac
 	done
 }
+
 ask_password() {
+	# for scdw installation
 	while true;do
 		read -sp "Password: " pass1
 		echo -e "\n"
@@ -45,7 +73,7 @@ ask_password() {
 }
 
 install_mail() {
-    #clear
+    #install mail
     while true;do
     read -p "Do you want install sendmail? (y/n)" answer
     case $answer in
@@ -66,6 +94,14 @@ install_mail() {
     done
 }
 
+packages () {
+#packages list
+#package name;url;file;file to start
+	cat <<EOF
+get-pip 
+EOF
+}
+
 cron-configuer(){
 	cron-config <<EOF
 yes
@@ -78,11 +114,10 @@ EOF
 
 
 install_modules(){
-cd /usr/local/src/extract
-    for achive in ../*.tar.gz; do 
-        tar zxf $achive
-    done
-	for folder in ./* ;do
+# function to install modules
+cd /usr/local/src/
+	for file in $http_list;do
+	wget $file
 		[ -d $folder ] && (
 			cd $folder
 			echo "in folder $(pwd)"
@@ -111,16 +146,19 @@ send_user "\n"
 			cd ..
 		)
 	done
+	done
 }
 
-install_mail
+# install_mail
+[ ! -d /usr/local/src ] && mkdir /usr/local/src
 cd /usr/local/src
-[ ! -d "extract" ] && mkdir extract 
-cd extract
+
+# [ ! -d "extract" ] && mkdir extract 
+#cd extract
 install_modules
-cp -f /usr/local/src/scwin/scdwin_modules/scwin_* /usr/local/bin/
-[ ! -d /usr/local/lib/scwin ] && mkdir /usr/local/lib/scwin
-cp -f /usr/local/src/scwin/scdwin_modules/vss_p* /usr/local/lib/scwin/
+#cp -f /usr/local/src/scwin/scdwin_modules/scwin_* /usr/local/bin/
+#[ ! -d /usr/local/lib/scwin ] && mkdir /usr/local/lib/scwin
+#cp -f /usr/local/src/scwin/scdwin_modules/vss_p* /usr/local/lib/scwin/
 
 # [ ! -z "$logfile" ] && (
 	# install_modules 2>&1 |tee -a "$logfile"
@@ -146,7 +184,7 @@ cp -f /usr/local/src/scwin/scdwin_modules/vss_p* /usr/local/lib/scwin/
 # Tune environment
 #
 
-echo "ulimit -n 1024" >>/etc/profile
+# echo "ulimit -n 1024" >>/etc/profile
 
 #
 # Set up cron as service
@@ -160,11 +198,11 @@ echo "ulimit -n 1024" >>/etc/profile
 #  to connect SkyCover Backup service
 #
 
-ssh-keygen -b 2048 -t rsa
-echo|ssh-keygen -e >exported.pub
+# ssh-keygen -b 2048 -t rsa
+# echo|ssh-keygen -e >exported.pub
 
 #
 # Generate GPG key
 #
 
-gpg --gen-key
+# gpg --gen-key
