@@ -16,11 +16,11 @@ set standalone=False
 set scwin_v=del.arhives
 
 ::check admin rights
-rem reg.exe query "HKU\S-1-5-19">nul 2>nul || (
-rem 	call :log message "this is not admin!"
-rem 	call :UACPrompt
-rem 	exit /b 0
-rem )
+reg.exe query "HKU\S-1-5-19">nul 2>nul || (
+ 	call :log message "this is not admin!"
+ 	call :UACPrompt
+ 	exit /b 0
+)
 
 :: logfile, comment in not needed
 set $logfile=%src%scdw-install.log
@@ -146,7 +146,6 @@ call :log debug "start external wget"
 call :log debug "source %~1"
 call :log debug "destination %~2"
 if defined $logfile (
-	echo "with tee"
 	"%src%wget.exe" --no-check-certificate "%~1" -O "%~2" 2>&1| "%$s_fname%" teenative
 ) else (
 	"%src%wget.exe" --no-check-certificate "%~1" -O "%~2"
@@ -155,18 +154,22 @@ exit /b !errorlevel!
 :: ==================================================================
 
 :: ==================================================================
-:postinst
 call :log message "start module :postinst"
 if not exist "%asm%" mkdir "%asm%"
 :: some fixes
-if not exist "%asm%\scwin" mkdir "%asm%\scwin"
-call :wget "https://github.com/skycover/scwin/tarball/%scwin_v%" scwin.tar.gz
-:: cd /d "%asm%\scwin"
+call :wget "https://github.com/skycover/scwin/tarball/%scwin_v%" %asm%\scwin.tar.gz
+call :log debug "extract full scwin package"
+if defined $logfile (
+	"%dst%\bin\bash.exe" -l -c "cd '%asm%' && f=$(tar -tf scwin.tar.gz|head -1) && tar -xf scwin.tar.gz && mv ./$f ./scwin" 2>&1| "%$s_fname%" teenative
+) else (
+	"%dst%\bin\bash.exe" -l -c "cd '%asm%' && f=$(tar -tf scwin.tar.gz|head -1) && tar -xf scwin.tar.gz && mv ./$f ./scwin"
+)
+cd /d "%asm%\scwin"
 :: xcopy /e /y /i "%src%\mail_module" "%asm%\scwin\mail_module\"
 :: xcopy /e /y /i "%src%\scdwin_modules" "%asm%\scwin\scdwin_modules\"
 :: end of part
 :: copy scw-postinst.sh "%asm%"
-:: call :run_program %dst%\bin\bash "%src%\scw-postinst.sh"
+call :run_program "%dst%\bin\bash" "%cd%\scw-postinst.sh"
 rem if /i "%scdw_needed%" == "True" (
 rem	call :create_webscript
 rem 	::call :create_shortcut "%%userprofile%%\desktop\scdw.lnk" "%asm%\scwin\scdwin_modules\scdw.bat"  "scduply web interface" 

@@ -1,4 +1,8 @@
 #/bin/bash
+
+echo "start postinst at $(date)"
+exit 
+
 source /etc/profile
 cd /usr/local/src
 
