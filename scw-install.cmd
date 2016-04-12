@@ -1,23 +1,8 @@
-@if (@X)==(@Y) @end /* Harmless hybrid line that begins a JScript comment
+@if (@X)==(@Y) @end
 @echo off
-
-::This block of code handles the TEE by calling the internal JScript code
-@echo off
-setlocal enableDelayedExpansion
-:: 
-if "%~1" equ "teenative" goto :tee_native
-if "%~1" equ ":tee_native_tee" goto :tee_native_tee
-
-if "%~1"=="_TEE_" (
-  cscript //E:JScript //nologo "%~f0" %2 %3
-  exit /b
-)
-
-:: install cygwin and scduply by Consult-MIT
-:: version 201604081a
 setlocal ENABLEEXTENSIONS EnableDelayedExpansion
-if "%2" equ ":TeeProcess" goto TeeProcess
-
+:: install cygwin and scduply by Consult-MIT
+:: version 201604012d
 ::
 set src=%~dp0
 set $s_fname=%~f0
@@ -28,7 +13,7 @@ set $loglevel=3
 set standalone=False
 
 :: versions of packages
-set scwin_v=master
+set scwin_v=del.arhives
 
 ::check admin rights
 rem reg.exe query "HKU\S-1-5-19">nul 2>nul || (
@@ -38,11 +23,18 @@ rem 	exit /b 0
 rem )
 
 :: logfile, comment in not needed
-set $logfile=%src%\scdw-install.log
+set $logfile=%src%scdw-install.log
 
+::for tee_native
+if "%~1" equ "teenative" (
+	goto :tee_native
+)
 :: destination
 set dst=c:\cygwin
 set asm=%dst%\usr\local\src
+
+:: wget_method
+set wget_method=wget_vbscript
 
 :: some variables depending on bit system
 set cygsetup=setup-x86.exe
@@ -58,18 +50,24 @@ exit /b 0
 
 :: ==================================================================
 :: installing all things
+:wget
+:: [source] [destination]
+call :%wget_method% %1 %2
+exit /b !errorlevel!
+:: ==================================================================
+
+:: ==================================================================
+:: installing all things
 :install_all
 :: install cygwin
-echo "http://cygwin.org/%cygsetup%"
-call :wget_bash "http://cygwin.org/%cygsetup%" "%src%%cygsetup%"
-rem call :install_cygwin 
+call :install_cygwin 
 rem call :wget_vbscript "https://github.com/skycover/scduply/tarball/%scduply_v%" "skycover-scduply.tar.gz"
 rem call :create_shortcut "%%userprofile%%\desktop\CygwinTerminal.lnk" "C:\cygwin\bin\mintty.exe" " " "-i /Cygwin-Terminal.ico -"
 rem call :extract_scwin || (
 rem	call :log error "in module :extract_scwin"
 rem	exit /b 1
 rem )
-rem call :postinst
+call :postinst
 exit /b 0
 :: ==================================================================
 
@@ -79,7 +77,11 @@ exit /b 0
 call :log debug "start bash wget"
 call :log debug "source %~1"
 call :log debug "destination %~2"
-call :run_program %dst%\bin\bash.exe -l -c 'wget --no-check-certificate  "%~1" -O "%~2"'
+if defined $logfile (
+	%dst%\bin\bash.exe -l -c 'wget --no-check-certificate  "%~1" -O "%~2"' 2>&1| "%$s_fname%" teenative
+) else (
+	%dst%\bin\bash.exe -l -c 'wget --no-check-certificate  "%~1" -O "%~2"'
+)
 exit /b !errorlevel!
 :: ==================================================================
 
@@ -143,39 +145,39 @@ exit /b !errorlevel!
 call :log debug "start external wget"
 call :log debug "source %~1"
 call :log debug "destination %~2"
-call :run_program %wget% --no-check-certificate "%~1" -O "%~2"
+if defined $logfile (
+	echo "with tee"
+	"%src%wget.exe" --no-check-certificate "%~1" -O "%~2" 2>&1| "%$s_fname%" teenative
+) else (
+	"%src%wget.exe" --no-check-certificate "%~1" -O "%~2"
+)
 exit /b !errorlevel!
 :: ==================================================================
 
 :: ==================================================================
 :postinst
 call :log message "start module :postinst"
-cd /d "%src%\archives"
-if not exist "skycover-scduply.tar.gz" call :run_program "%wget%" --no-check-certificate "https://github.com/skycover/scduply/tarball/%scduply_v%" -O skycover-scduply.tar.gz
-if /i "%scdw_needed%" == "True" (
-	call :log debug "scdw needed, download if not downloaded"
-	if not exist "skycover-scdw.tar.gz" (
-		call :log debug "start download scdw"
-		call :run_program "%wget%" --no-check-certificate "https://github.com/skycover/scdw/tarball/%scdw_v%" -O skycover-scdw.tar.gz
-	)
-)
 if not exist "%asm%" mkdir "%asm%"
-call :log debug "start copy to /usr/"
-for %%a in (*.tar.gz) do (
-	xcopy "%%a" "%asm%\" /y || call :log error "error on copy %%a"
-)
 :: some fixes
 if not exist "%asm%\scwin" mkdir "%asm%\scwin"
-cd /d "%asm%\scwin"
-xcopy /e /y /i "%src%\mail_module" "%asm%\scwin\mail_module\"
-xcopy /e /y /i "%src%\scdwin_modules" "%asm%\scwin\scdwin_modules\"
+call :wget "https://github.com/skycover/scwin/tarball/%scwin_v%" scwin.tar.gz
+:: cd /d "%asm%\scwin"
+:: xcopy /e /y /i "%src%\mail_module" "%asm%\scwin\mail_module\"
+:: xcopy /e /y /i "%src%\scdwin_modules" "%asm%\scwin\scdwin_modules\"
 :: end of part
 :: copy scw-postinst.sh "%asm%"
-call :run_program %dst%\bin\bash "%src%\scw-postinst.sh"
-if /i "%scdw_needed%" == "True" (
-	call :create_webscript
-	call :create_shortcut "%%userprofile%%\desktop\scdw.lnk" "%asm%\scwin\scdwin_modules\scdw.bat"  "scduply web interface" 
-)
+:: call :run_program %dst%\bin\bash "%src%\scw-postinst.sh"
+rem if /i "%scdw_needed%" == "True" (
+rem	call :create_webscript
+rem 	::call :create_shortcut "%%userprofile%%\desktop\scdw.lnk" "%asm%\scwin\scdwin_modules\scdw.bat"  "scduply web interface" 
+rem )
+exit /b 0
+:: ==================================================================
+
+:: ==================================================================
+:scwin
+:: restore folder in asm
+call :wget 
 exit /b 0
 :: ==================================================================
 
@@ -205,59 +207,25 @@ cd /d "%src%\cygwin"
 call :log debug "%cd%"
 if not exist "%cd%\%cygsetup%" (
 	call :log debug "try dowload cygwin"
-	call :run_program "%wget%" "http://cygwin.com/%cygsetup%" 
+	call :wget "http://cygwin.com/%cygsetup%" "%cd%\%cygsetup%" 
 )
 call :log message "start install"
-call :run_program %cygsetup% -l "%src%\cygwin" -R "%dst%" -q -P "%packages%" -s "%server%" -d
-call :create_shortcut "%%userprofile%%\desktop\CygwinTerminal.lnk" "C:\cygwin\bin\mintty.exe" " " "-i /Cygwin-Terminal.ico -"
+if defined $logfile (
+	%cygsetup% -l "%src%\cygwin" -R "%dst%" -q -P "%packages%" -s "%server%" 2>&1| "%$s_fname%" teenative
+) else (
+	%cygsetup% -l "%src%\cygwin" -R "%dst%" -q -P "%packages%" -s "%server%"
+)
+::call :create_shortcut "%%userprofile%%\desktop\CygwinTerminal.lnk" "C:\cygwin\bin\mintty.exe" " " "-i /Cygwin-Terminal.ico -"
 call :log debug "ended installation of cygwin"
 exit /b %errorlevel%
 :: ==================================================================
 
 :: ==================================================================
-:: native tee method from http://stackoverflow.com/questions/11239924/windows-batch-tee-command
+:: simple tee
 :tee_native
-:tee_native_lock
-set "teeTemp=%temp%\tee%time::=_%"
-2>nul (
-  9>"%teeTemp%.lock" (
-    for %%F in ("%teeTemp%.test") do (
-      set "yes="
-      pushd "%temp%"
-      copy /y nul "%%~nxF" >nul
-      for /f "tokens=2 delims=(/" %%A in (
-        '^<nul copy /-y nul "%%~nxF"'
-      ) do if not defined yes set "yes=%%A"
-      popd
-    )
-    for /f %%A in ("!yes!") do (
-      find /n /v ""
-      echo :END
-      echo %%A
-    ) >"%teeTemp%.tmp" | <"%teeTemp%.tmp" "%~f0" :tee_native_tee %* 7>&1 >nul
-    (call )
-  ) || goto :tee_native_lock
-)
-del "%teeTemp%.lock" "%teeTemp%.tmp" "%teeTemp%.test"
-exit /b
-
-:tee_native_tee
-set "redirect=>"
-if "%~3" equ "/A" set "redirect=>>"
-8%redirect% %2 (call :tee_native_tee2)
-set "redirect="
-(echo ERROR: %~nx0 unable to open %2)>&7
-
-:tee_native_tee2
-for /l %%. in () do (
-  set "ln="
-  set /p "ln="
-  if defined ln (
-    if "!ln:~0,4!" equ ":END" exit
-    set "ln=!ln:*]=!"
-    (echo(!ln!)>&7
-    if defined redirect (echo(!ln!)>&8
-  )
+for /f "delims=" %%s in ('findstr "^.*"') do (
+	echo %%s
+	echo %%s>>%$logfile%
 )
 exit /b 0
 :: ==================================================================
@@ -310,8 +278,8 @@ exit /b
 :run_program
 call :log message "start program %*"
 if defined $logfile (
-	echo %* >>%$logfile% 2>>%$logfile%
-	%* 2>&1 | %$s_fname% _TEE_ %$logfile% 1
+	echo %* | %$s_fname% teenative
+	%* 2>&1 | %$s_fname% teenative
 ) else %*
 exit /b %errorlevel%
 :: ==================================================================
@@ -356,15 +324,3 @@ if "%$loglevel%"=="3" (
 ) else exit /b 0
 exit /b 0
 :: ==================================================================
-
------ End of JScript comment, beginning of normal JScript  ------------------*/
-var fso = new ActiveXObject("Scripting.FileSystemObject");
-var mode=2;
-if (WScript.Arguments.Count()==2) {mode=8;}
-var out = fso.OpenTextFile(WScript.Arguments(0),mode,true);
-var chr;
-while( !WScript.StdIn.AtEndOfStream ) {
-  chr=WScript.StdIn.Read(1);
-  WScript.StdOut.Write(chr);
-  out.Write(chr);
-}

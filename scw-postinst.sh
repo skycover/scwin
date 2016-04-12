@@ -8,29 +8,10 @@ s_user=$USERNAME
 s_mail="admin@somemail.dom"
 logfile="$1"
 
-
-packages_file[0]="get-pip.py";packages_version[0]="";packages_http[0]="https://bootstrap.pypa.io/get-pip.py"
-packages_file[1]="scduply.tar.gz"
-packages_file[2]="scwin.tar.gz"
-packages_file[3]="scdw.tar.gz"
-
 #versions of packages
-
-packages_version[1]="master"
-packages_version[2]="master"
-packages_version[3]="master"
-
-#http of packages
-
-packages_http[1]="https://github.com/skycover/scduply/tarball/$scduply_version"
-packages_http[2]="https://github.com/skycover/scwin/tarball/$scwin_version"
-packages_http[3]="https://github.com/skycover/scdw/tarball/$scdw_version"
-
-#parameters of packages
-parameter_http[0]=""
-parameter_http[1]=""
-parameter_http[2]=""
-parameter_http[3]=""
+scduply_version[1]="master"
+scdw_version[2]="master"
+scwin_version[3]="master"
 
 #
 # Install extra packages
@@ -96,9 +77,13 @@ install_mail() {
 
 packages () {
 #packages list
-#package name;url;file;file to start
+# p_name=$1  ;p_=2;    3;  4         ;   5
+#package name;url;file;file to start;requiered
 	cat <<EOF
-get-pip 
+scwin;https://github.com/skycover/scwin/tarball/$scwin_version;scwin.tar.gz;;;
+get-pip;https://bootstrap.pypa.io/get-pip.py;get-pip.py;get-pip.py;;
+scduply;https://github.com/skycover/scduply/tarball/$scduply_version;scduply.tar.gz;install.sh;;
+scdw;https://github.com/skycover/scdw/tarball/$scdw_version;scdw.tar.gz;install.sh;;
 EOF
 }
 
@@ -116,8 +101,15 @@ EOF
 install_modules(){
 # function to install modules
 cd /usr/local/src/
-	for file in $http_list;do
-	wget $file
+packages| while read l;do
+	eval $(echo $l|awk =F";" '{
+		print("name="$1";")
+		print("url="$2";")
+		print("outputfile="$3";")
+		print("startfile="$4";")
+		print("required="$5";")
+	}')
+	wget --no-check-certificate $url -O $outputfile
 		[ -d $folder ] && (
 			cd $folder
 			echo "in folder $(pwd)"
