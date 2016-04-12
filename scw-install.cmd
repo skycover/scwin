@@ -2,6 +2,12 @@
 @echo off
 
 ::This block of code handles the TEE by calling the internal JScript code
+@echo off
+setlocal enableDelayedExpansion
+:: 
+if "%~1" equ "teenative" goto :tee_native
+if "%~1" equ ":tee_native_tee" goto :tee_native_tee
+
 if "%~1"=="_TEE_" (
   cscript //E:JScript //nologo "%~f0" %2 %3
   exit /b
@@ -33,8 +39,6 @@ rem )
 
 :: logfile, comment in not needed
 set $logfile=%src%\scdw-install.log
-
-if "%2" equ ":TeeProcess" goto TeeProcess
 
 :: destination
 set dst=c:\cygwin
@@ -212,7 +216,8 @@ exit /b %errorlevel%
 
 :: ==================================================================
 :: native tee method from http://stackoverflow.com/questions/11239924/windows-batch-tee-command
-:lock
+:tee_native
+:tee_native_lock
 set "teeTemp=%temp%\tee%time::=_%"
 2>nul (
   9>"%teeTemp%.lock" (
@@ -229,21 +234,21 @@ set "teeTemp=%temp%\tee%time::=_%"
       find /n /v ""
       echo :END
       echo %%A
-    ) >"%teeTemp%.tmp" | <"%teeTemp%.tmp" "%~f0" :tee %* 7>&1 >nul
+    ) >"%teeTemp%.tmp" | <"%teeTemp%.tmp" "%~f0" :tee_native_tee %* 7>&1 >nul
     (call )
-  ) || goto :lock
+  ) || goto :tee_native_lock
 )
 del "%teeTemp%.lock" "%teeTemp%.tmp" "%teeTemp%.test"
 exit /b
 
-:tee
+:tee_native_tee
 set "redirect=>"
-if "%~3" equ "+" set "redirect=>>"
-8%redirect% %2 (call :tee2)
+if "%~3" equ "/A" set "redirect=>>"
+8%redirect% %2 (call :tee_native_tee2)
 set "redirect="
 (echo ERROR: %~nx0 unable to open %2)>&7
 
-:tee2
+:tee_native_tee2
 for /l %%. in () do (
   set "ln="
   set /p "ln="
