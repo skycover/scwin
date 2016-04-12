@@ -1,8 +1,5 @@
 #/bin/bash
 
-echo "start postinst at $(date)"
-exit 
-
 source /etc/profile
 cd /usr/local/src
 
@@ -13,13 +10,9 @@ s_mail="admin@somemail.dom"
 logfile="$1"
 
 #versions of packages
-scduply_version[1]="master"
-scdw_version[2]="master"
-scwin_version[3]="master"
-
-#
-# Install extra packages
-#
+scduply_version="master"
+scdw_version="master"
+scwin_version="master"
 
 pip_packages="pycrypto ecdsa lockfile paramiko pexpect"
 
@@ -84,11 +77,10 @@ packages () {
 # p_name=$1  ;p_=2;    3;  4         ;   5
 #package name;url;file;file to start;requiered
 	cat <<EOF
-scwin;https://github.com/skycover/scwin/tarball/$scwin_version;scwin.tar.gz;;;
 get-pip;https://bootstrap.pypa.io/get-pip.py;get-pip.py;get-pip.py;;
 scduply;https://github.com/skycover/scduply/tarball/$scduply_version;scduply.tar.gz;install.sh;;
-scdw;https://github.com/skycover/scdw/tarball/$scdw_version;scdw.tar.gz;install.sh;;
 EOF
+#scdw;https://github.com/skycover/scdw/tarball/$scdw_version;scdw.tar.gz;install.sh;;
 }
 
 cron-configuer(){
@@ -106,7 +98,7 @@ install_modules(){
 # function to install modules
 cd /usr/local/src/
 packages| while read l;do
-	eval $(echo $l|awk =F";" '{
+	eval $(echo $l|awk -F";" '{
 		print("name="$1";")
 		print("url="$2";")
 		print("outputfile="$3";")
@@ -114,16 +106,23 @@ packages| while read l;do
 		print("required="$5";")
 	}')
 	wget --no-check-certificate $url -O $outputfile
-		[ -d $folder ] && (
-			cd $folder
-			echo "in folder $(pwd)"
-			[ -a setup.py ] && (
-				echo "trying install python script"
-				python ./setup.py install 2>&1
-			)
-			[ -a install.sh ] && (
-				echo "trying install shell script"
-				echo $(pwd) | grep "\-scdw-" && (
+	[ "$name"=="get-pip" ] && (
+		python ./$outputfile && pip install $pip_packages
+	) || (
+		f=$(tar -tf $outputfile|head -1)
+		tar -xf $outputfile
+		mv $f $name
+	)
+	[ -d $name ] && (
+		cd $name
+		echo "in folder $(pwd)"
+		[ -a setup.py ] && (
+			echo "trying install python script"
+			python ./setup.py install 2>&1
+		)
+		[ -a install.sh ] && (
+			echo "trying install shell script"
+			echo $(pwd) | grep "scdw" && (
 				# little bit of magic, because you we working logging
 				ask_username
 				ask_password
@@ -136,13 +135,13 @@ expect "Password*" {send -- "'$s_password'\r"}
 expect "Password*" {send -- "'$s_password'\r"}
 expect eof
 send_user "\n"
-'
-				) || ./install.sh
-			) 2>&1
-			cd ..
-		)
-	done
-	done
+'			) || ./install.sh
+		) 2>&1
+		cd ..
+	) || (
+		echo "pass"
+	)
+done
 }
 
 # install_mail
