@@ -4,6 +4,7 @@ source /etc/profile
 cd /usr/local/src
 
 scwin_lib='/usr/local/lib/scwin'
+src_lib='/usr/local/src'
 
 s_user=$USERNAME
 s_mail="admin@somemail.dom"
@@ -12,9 +13,18 @@ logfile="$1"
 #versions of packages
 scduply_version="master"
 scdw_version="master"
-scwin_version="master"
+#scwin_version="master"
+duplicity_version=$(curl.exe -s http://duplicity.nongnu.org/|egrep -o "h[:/a-zA-Z0-9\.\+\-]+tar.gz"|head -1)
 
-pip_packages="pycrypto ecdsa lockfile paramiko pexpect"
+get_foldername() {
+	# $1 file name
+	if [ -e $1 -a `echo $1|grep "tar.gz$"` ];then
+		tar -tf $1|head -1
+		return 0
+	else
+		return 1
+	fi
+}
 
 ask_username() {
 	# for scdw
@@ -72,77 +82,48 @@ install_mail() {
     done
 }
 
-packages () {
-#packages list
-# p_name=$1  ;p_=2;    3;  4         ;   5
-#package name;url;file;file to start;requiered
-	cat <<EOF
-get-pip;https://bootstrap.pypa.io/get-pip.py;get-pip.py;get-pip.py;;
-scduply;https://github.com/skycover/scduply/tarball/$scduply_version;scduply.tar.gz;install.sh;;
-EOF
-#scdw;https://github.com/skycover/scdw/tarball/$scdw_version;scdw.tar.gz;install.sh;;
+install_targz(){
+	# $url $filename
+	cd $src_lib
+	wget --no-check-certificate "$1" -O "$2"
+	folder=$(get_foldername $2)
+	echo $folder
+	tar -xf "$2"
+	cd $folder
+	echo $(pwd)
+	if [[ -f install.sh ]];then
+		echo "install.sh"
+		./install.sh
+	elif [[ -f setup.py ]];then
+		echo "setup.py"
+		python ./setup.py install
+	fi
 }
 
-cron-configuer(){
-	cron-config <<EOF
-yes
-ntsec
-no
-yes
-EOF
-
+install_duplicity(){
+	# function to install modules
+	install_targz "$duplicity_version" duplicity.tar.gz
 }
 
-
-install_modules(){
-# function to install modules
-cd /usr/local/src/
-packages| while read l;do
-	eval $(echo $l|awk -F";" '{
-		print("name="$1";")
-		print("url="$2";")
-		print("outputfile="$3";")
-		print("startfile="$4";")
-		print("required="$5";")
-	}')
-	wget --no-check-certificate $url -O $outputfile
-	[ "$name"=="get-pip" ] && (
-		python ./$outputfile && pip install $pip_packages
-	) || (
-		f=$(tar -tf $outputfile|head -1)
-		tar -xf $outputfile
-		mv $f $name
-	)
-	[ -d $name ] && (
-		cd $name
-		echo "in folder $(pwd)"
-		[ -a setup.py ] && (
-			echo "trying install python script"
-			python ./setup.py install 2>&1
-		)
-		[ -a install.sh ] && (
-			echo "trying install shell script"
-			echo $(pwd) | grep "scdw" && (
-				# little bit of magic, because you we working logging
-				ask_username
-				ask_password
-				expect -c 'set timeout 86000
-spawn ./install.sh
-expect "Would you like to create one now? (yes/no)" {send "yes\r"}
-expect "Username*" {send "'$s_user'\r"}
-expect "E-mail address*" {send "'$s_mail'\r"}
-expect "Password*" {send -- "'$s_password'\r"}
-expect "Password*" {send -- "'$s_password'\r"}
-expect eof
-send_user "\n"
-'			) || ./install.sh
-		) 2>&1
-		cd ..
-	) || (
-		echo "pass"
-	)
-done
+install_scduply(){
+	# install scduply
+	install_targz "https://github.com/skycover/scduply/tarball/$scduply_version" scduply.tar.gz
 }
+#echo $(pwd) | grep "scdw" && (
+#				# little bit of magic, because you we working logging
+#				ask_username
+#				ask_password
+#				expect -c 'set timeout 86000
+#spawn ./install.sh
+#expect "Would you like to create one now? (yes/no)" {send "yes\r"}
+#expect "Username*" {send "'$s_user'\r"}
+#expect "E-mail address*" {send "'$s_mail'\r"}
+#expect "Password*" {send -- "'$s_password'\r"}
+#expect "Password*" {send -- "'$s_password'\r"}
+#expect eof
+#send_user "\n"
+#'			) || ./install.sh
+#		) 2>&1
 
 # install_mail
 [ ! -d /usr/local/src ] && mkdir /usr/local/src
@@ -150,7 +131,9 @@ cd /usr/local/src
 
 # [ ! -d "extract" ] && mkdir extract 
 #cd extract
-install_modules
+install_duplicity
+install_scduply
+
 #cp -f /usr/local/src/scwin/scdwin_modules/scwin_* /usr/local/bin/
 #[ ! -d /usr/local/lib/scwin ] && mkdir /usr/local/lib/scwin
 #cp -f /usr/local/src/scwin/scdwin_modules/vss_p* /usr/local/lib/scwin/
@@ -171,14 +154,12 @@ install_modules
 # mkdir -p $scwin_lib
 # cp ./vss_* $scwin_lib/
 
-#if [ -d "$USERPROFILE/Desktop" ]; then
-#  cp scdw.cmd "$USERPROFILE/Desktop"
-#fi
 
 #
 # Tune environment
 #
 
+# TODO not do if exist
 # echo "ulimit -n 1024" >>/etc/profile
 
 #
@@ -193,6 +174,7 @@ install_modules
 #  to connect SkyCover Backup service
 #
 
+# TODO: not do if exist 
 # ssh-keygen -b 2048 -t rsa
 # echo|ssh-keygen -e >exported.pub
 
