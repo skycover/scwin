@@ -22,6 +22,7 @@ function make_backup_server {
 		}')
 		ShadowDisk=$disk_source
 	[[ ! -e "/vsshadow" ]] && mkdir "/vsshadow"
+	[[ -L "/vsshadow/${ShadowDisk,,}" ]] && rm -f "/vsshadow/${ShadowDisk,,}"
 	ln -ds "/proc/sys/Device/${ShadowVolume}" "/vsshadow/${ShadowDisk,,}"
 }
 
@@ -47,6 +48,7 @@ function make_vss_workstation {
 	'  2>/dev/null)
 	[[ $notaccess ]] && return 1
 	[[ ! -e "/vsshadow" ]] && mkdir "/vsshadow"
+	[[ -L "/vsshadow/${ShadowDisk,,}" ]] && rm -f "/vsshadow/${ShadowDisk,,}"
 	ln -ds "/proc/sys/Device/${ShadowVolume}" "/vsshadow/${ShadowDisk,,}"
 }
 

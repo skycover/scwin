@@ -60,6 +60,13 @@ ask_password() {
 	done
 }
 
+install_modules() {
+	chmod +x "$scwin_lib/scdwin_modules/*"
+	cp -f "$scwin_lib/scdwin_modules/scwin_*" /usr/local/bin/
+	[ ! -d /usr/local/lib/scwin ] && mkdir -p /usr/local/lib/scwin
+	cp -f "$scwin_lib/scdwin_modules/vss_p*" /usr/local/lib/scwin/
+}
+
 install_mail() {
     #install mail
     while true;do
@@ -133,10 +140,7 @@ cd /usr/local/src
 #cd extract
 install_duplicity
 install_scduply
-
-#cp -f /usr/local/src/scwin/scdwin_modules/scwin_* /usr/local/bin/
-#[ ! -d /usr/local/lib/scwin ] && mkdir /usr/local/lib/scwin
-#cp -f /usr/local/src/scwin/scdwin_modules/vss_p* /usr/local/lib/scwin/
+install_mail
 
 # [ ! -z "$logfile" ] && (
 	# install_modules 2>&1 |tee -a "$logfile"

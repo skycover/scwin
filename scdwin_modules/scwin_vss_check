@@ -22,18 +22,29 @@ function check_vss {
 			}
 			vss_download="$vss_download_8"
 		}
+		cat "$reg_ostype" | grep -i "10" >/dev/null 2>&1 && {
+			[[ -e "$PROGRAMFILES (x86)" ]] && {
+				vss_tool_path="$vss_workstation_10_64"
+			} || {
+				vss_tool_path="$vss_workstation_10_32"
+			}
+			vss_download="$vss_download_10"
+		}
 	else
 		vss_tool_path="$vss_server"
 	fi
 	[[ -e "$vss_tool_path" ]] &&  return 0 || return 1
 }
 
+vss_workstation_10_64="$PROGRAMFILES (x86)\Windows Kits\10\bin\x64"
+vss_workstation_10_32="$PROGRAMFILES\Windows Kits\10\bin\x86"
 vss_workstation_8_64="$PROGRAMFILES (x86)\Windows Kits\8.1\bin\x64"
 vss_workstation_8_32="$PROGRAMFILES\Windows Kits\8.1\bin\x86"
 vss_workstation_7_32="$PROGRAMFILES\Microsoft SDKs\Windows\v7.1\Bin\vsstools"
 vss_workstation_7_64="$PROGRAMFILES\Microsoft SDKs\Windows\v7.1\Bin\x64\vsstools"
 vss_download_7="http://download.microsoft.com/download/A/6/A/A6AC035D-DA3F-4F0C-ADA4-37C8E5D34E3D/winsdk_web.exe"
 vss_download_8="http://download.microsoft.com/download/B/0/C/B0C80BA3-8AD6-4958-810B-6882485230B5/standalonesdk/sdksetup.exe"
+vss_download_10="http://download.microsoft.com/download/2/1/2/2122BA8F-7EA6-4784-9195-A8CFB7E7388E/StandaloneSDK/sdksetup.exe"
 vss_server="$SYSTEMROOT"
 reg_ostype="/proc/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/ProductName"
 vss_download=""
@@ -49,7 +60,7 @@ if [[ $1 == "check" ]];then
 		wget "$vss_download" -O "/tmp/sdk_tool.exe"
 		cd /tmp/
 		chmod +x ./sdk_tool.exe
-		ls -l /tmp/
+		ls -l /tmp/ > /dev/null
 		./sdk_tool.exe
 }
 else
