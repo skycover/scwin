@@ -6,7 +6,6 @@ usage() {
 	cat<<EOF
 $0 [ list | install | [ activate | deactivate ] taskname ]"
 	list	-	task list and status
-	install	-	install vss tools if needed
 	activate taskname 	-	activate vss for taskname
 	deactivate taskname	-	deactivate vss for taskname
 EOF
@@ -184,9 +183,6 @@ while [ $# -gt 0 ]; do
 			;;
 		deactivate)
 			vss_deactivate $2
-			;;
-		install)
-			. scwin_vss_check check
 			;;
 		*)
 			exit

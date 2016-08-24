@@ -11,20 +11,9 @@ s_mail="admin@somemail.dom"
 logfile="$1"
 
 #versions of packages
-scduply_version="master"
+scduply_version='force_full'
 scdw_version="master"
-#scwin_version="master"
-duplicity_version=$(curl.exe -s http://duplicity.nongnu.org/|egrep -o "h[:/a-zA-Z0-9\.\+\-]+tar.gz"|head -1)
-
-get_foldername() {
-	# $1 file name
-	if [ -e $1 -a `echo $1|grep "tar.gz$"` ];then
-		tar -tf $1|head -1
-		return 0
-	else
-		return 1
-	fi
-}
+scwin_version='del.arhives'
 
 ask_username() {
 	# for scdw
@@ -43,30 +32,6 @@ ask_username() {
 				;;
 			esac
 	done
-}
-
-ask_password() {
-	# for scdw installation
-	while true;do
-		read -sp "Password: " pass1
-		echo -e "\n"
-		read -sp "Password (again): " pass2
-		echo -e "\n"
-		[ "${pass1}" == "${pass2}" -a ${#pass1} -ge 3 ] && {
-			s_password=$pass1
-			return 0
-		}
-		echo "Passwords don't match or too short"
-	done
-}
-
-install_modules() {
-	echo "try install modules"
-	# echo "$src_lib/scwin/scdwin_modules/*
-	chmod +x $src_lib/scwin/scdwin_modules/*
-	cp -f $src_lib/scwin/scdwin_modules/sc* /usr/local/bin/
-	[ ! -d /usr/local/lib/scwin ] && mkdir -p /usr/local/lib/scwin
-	cp -f $src_lib/scwin/scdwin_modules/vss_p* /usr/local/lib/scwin/
 }
 
 install_mail() {
@@ -89,32 +54,6 @@ install_mail() {
             ;;
         esac
     done
-}
-
-install_targz(){
-	# $url $filename
-	cd $src_lib
-	wget --no-check-certificate "$1" -O "$2"
-	folder=$(get_foldername $2)
-	echo $folder
-	tar -xf "$2"
-	cd $folder
-	echo $(pwd)
-	if [[ -f install.sh ]];then
-		echo "install.sh"
-		./install.sh
-	elif [[ -f setup.py ]];then
-		echo "setup.py"
-		python ./setup.py install
-	fi
-}
-
-install_duplicity(){
-	# function to install modules
-	install_targz "$duplicity_version" duplicity.tar.gz
-	easy_install-2.7 -U cffi lockfile pexpect paramiko
-	cd /lib/python2.7/site-packages/duplicity
-	patch -p1 < $src_lib/scwin/duplicity-patch.diff
 }
 
 istall_scdw(){
@@ -145,35 +84,13 @@ send_user "\n"
     esac
 }
 
-install_scduply(){
-	# install scduply
-	install_targz "https://github.com/skycover/scduply/tarball/$scduply_version" scduply.tar.gz
-}
-#echo $(pwd) | grep "scdw" && (
-#				# little bit of magic, because you we working logging
-#				ask_username
-#				ask_password
-#				expect -c 'set timeout 86000
-#spawn ./install.sh
-#expect "Would you like to create one now? (yes/no)" {send "yes\r"}
-#expect "Username*" {send "'$s_user'\r"}
-#expect "E-mail address*" {send "'$s_mail'\r"}
-#expect "Password*" {send -- "'$s_password'\r"}
-#expect "Password*" {send -- "'$s_password'\r"}
-#expect eof
-#send_user "\n"
-#'			) || ./install.sh
-#		) 2>&1
 
 # install_mail
 [ ! -d /usr/local/src ] && mkdir /usr/local/src
 cd /usr/local/src
 
-install_duplicity
-install_scduply
+scwin/scdwin_modules/scduply_upgrade +all +duplicity scduply_branch=$scduply_version scwin_branch=$scdw_version
 install_mail
-install_modules
-
 
 grep "ulimit -n 1024" /etc/profile > /dev/null || echo "ulimit -n 1024" >> /etc/profile
 [[ ! -a ~/.scduply ]] && scduply init

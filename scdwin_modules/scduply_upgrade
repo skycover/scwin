@@ -1,0 +1,136 @@
+#!/bin/bash
+# upgrade for scduply and modules
+
+unset scduply_update
+unset scwin_update
+unset duplicity_update
+unset first_install
+
+scduply_branch='force_full'
+scwin_branch='del.arhives'
+
+src_lib='/usr/local/src'
+
+function usage {
+	cat<<EOF
+    $0 [[+scduply] [+scwin]| +all] [+duplicity] [scduply_branch={branch}] [scwin_branch={branch}]
+        upgrade scduply and modules from internet
+        
+    +scduply                       - upgrade scduply
+    scduply_branch={branch}        - from branch
+    +scwin                         - upgrade scwin
+    scwin_branch={branch}          - from branch
+    +all                           - upgrade scduply and scwin
+    +duplicity                     - upgrade duplicity from website
+EOF
+}
+
+function get_foldername {
+	# $1 file name
+	if [ -e $1 -a `echo $1|grep "tar.gz$"` ];then
+		tar -tf $1|head -1
+		return 0
+	else
+		return 1
+	fi
+}
+
+function duplicity_update {
+	# function to install modules
+	duplicity_version=$(curl.exe -s http://duplicity.nongnu.org/|egrep -o "h[:/a-zA-Z0-9\.\+\-]+tar.gz"|head -1)
+	install_targz "$duplicity_version" duplicity.tar.gz
+	easy_install-2.7 -U cffi lockfile pexpect paramiko
+	cd /lib/python2.7/site-packages/duplicity
+	cat<<EOF|patch -p1 -N
+diff -Naur '--exclude=*.pyc' old/backends/ssh_paramiko_backend.py now/backends/ssh_paramiko_backend.py
+--- old/backends/ssh_paramiko_backend.py	2016-07-02 15:44:03.000000000 +0300
++++ now/backends/ssh_paramiko_backend.py	2016-08-23 18:31:24.014183400 +0300
+@@ -406,8 +406,6 @@
+ 
+         return sshconfig.lookup(host)
+ 
+-duplicity.backend.register_backend("sftp", SSHParamikoBackend)
+-duplicity.backend.register_backend("scp", SSHParamikoBackend)
+ duplicity.backend.register_backend("paramiko+sftp", SSHParamikoBackend)
+ duplicity.backend.register_backend("paramiko+scp", SSHParamikoBackend)
+-duplicity.backend.uses_netloc.extend(['sftp', 'scp', 'paramiko+sftp', 'paramiko+scp'])
++duplicity.backend.uses_netloc.extend(['paramiko+sftp', 'paramiko+scp'])
+diff -Naur '--exclude=*.pyc' old/backends/ssh_pexpect_backend.py now/backends/ssh_pexpect_backend.py
+--- old/backends/ssh_pexpect_backend.py	2016-02-18 19:42:00.000000000 +0300
++++ now/backends/ssh_pexpect_backend.py	2016-08-23 18:31:15.527768500 +0300
+@@ -287,6 +287,8 @@
+         commandline = ("%s %s %s" % (self.sftp_command, globals.ssh_options, self.host_string))
+         self.run_sftp_command(commandline, commands)
+ 
++duplicity.backend.register_backend("sftp", SSHPExpectBackend)
++duplicity.backend.register_backend("scp", SSHPExpectBackend)
+ duplicity.backend.register_backend("pexpect+sftp", SSHPExpectBackend)
+ duplicity.backend.register_backend("pexpect+scp", SSHPExpectBackend)
+-duplicity.backend.uses_netloc.extend(['pexpect+sftp', 'pexpect+scp'])
++duplicity.backend.uses_netloc.extend(["sftp", "scp", 'pexpect+sftp', 'pexpect+scp'])
+EOF
+}
+
+function scduply_update {
+	scduply_url="https://github.com/skycover/scduply/tarball/$scduply_branch"
+	install_targz "$scduply_url" "scduply.tar.gz"
+}
+
+function scwin_update {
+	scwin_url="https://github.com/skycover/scwin/tarball/$scwin_branch"
+	install_targz "$scwin_url" "scwin.tar.gz"
+	chmod +x $src_lib/scwin/scdwin_modules/*
+	cp -f $src_lib/scwin/scdwin_modules/sc* /usr/local/bin/
+	[ ! -d /usr/local/lib/scwin ] && mkdir -p /usr/local/lib/scwin
+	cp -f $src_lib/scwin/scdwin_modules/vss_p* /usr/local/lib/scwin/
+}
+
+function install_targz {
+	# $url $filename
+	cd $src_lib
+	wget --no-check-certificate "$1" -O "$2"
+	folder=$(get_foldername $2)
+	tar -xf "$2"
+	cd $folder
+	[[ -f install.sh ]] && ./install.sh
+	[[ -f setup.py ]] && python ./setup.py install
+}
+
+while [ $# -gt 0 ];do
+	case "$1" in
+		+all)
+			scduply_update=1
+			scwin_update=1
+			;;
+		scduply_branch=*)
+			scduply_branch="${1//scduply_branch=/}"
+			;;
+		scwin_branch=*)
+			scwin_branch="${1//scwin_branch=/}"
+			;;
+		+scduply)
+			scduply_update=1
+			;;
+		+scwin)
+			scwin_update=1
+			;;
+		+duplicity)
+			duplicity_update=1
+			;;
+		--install_custompackage)
+			unset scduply_update
+			unset scwin_update
+			unset duplicity_update
+			install_targz "$2" "$3"
+			return $?
+			;;
+		-h|--help)
+			usage
+			;;
+	esac
+	shift
+done
+
+[[ ! -z $scduply_update ]] && scduply_update
+[[ ! -z $scwin_update ]] && scwin_update
+[[ ! -z $duplicity_update ]] && duplicity_update
