@@ -1,0 +1,47 @@
+#!/bin/bash
+# work with shadowcopy in cygwin for scduply + windows 7/8/8.1/10
+# autor: Elias Arkhipov
+# mail: ai@c-mit.ru
+
+function link_disk {
+	# disk, valume
+	[[ ! -e /vsshadow ]] && mkdir /vsshadow
+	[[ -L "/vsshadow/${1,,}" ]] && {
+		echo "delete link to disk $1"
+		[[ -e "/vsshadow/{1,,}" ]] && echo "device exit"
+		rm -f "/vsshadow/${1,,}"
+	}
+	ln -ds "/proc/sys/Device/$2" "/vsshadow/${1,,}"
+}
+
+function make_vss_universal {
+	# make_vss_universal [disk]
+	shadowid=`echo -e "\n\r"|powershell -c '& {\$class=[WMICLASS]"root\cimv2:win32_shadowcopy"; \$class.create("'$1':\","ClientAccessible")| % { \$_.ShadowID } }'|dos2unix`
+	shadowvolume=`vssadmin list shadows "/shadow=$shadowid"|dos2unix|egrep -o "HarddiskVolumeShadowCopy[0-9]+"`
+	link_disk $1 $shadowvolume
+}
+
+function delete_vss_universal {
+	# delete c:
+	# delete vsshadow by id
+	local disk_letter=`vssadmin list shadows "/shadow=$1"|egrep -o "[A-Z]:"`
+	[[ -L /vsshadow/${disk_letter//:/} ]] && {
+		echo "delete link to shadow copy $1 of disk ${disk_letter//:/}"
+		rm -f /vsshadow/${disk_letter//:/}
+	}
+	vssadmin delete shadows "/shadow=$1" /quiet
+}
+
+if [[ $1 == 'create' ]]; then
+	make_vss_universal $2
+	echo "$shadowid is mounted"
+elif [[ $1 == 'delete' ]]; then
+	delete_vss_universal $2
+else
+	cat<<EOF
+	$0 [ create {diskletter}| delete {shadowcopyid} ]
+		create {diskletter} 	- create shadow copy of disk and mount to /vsshadow/{diskletter}
+		delete {shadowcopyid} 	- delete shadowcopy and unmount
+EOF
+fi
+	

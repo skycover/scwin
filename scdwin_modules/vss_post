@@ -1,15 +1,8 @@
 #!/bin/bash
-# pre for scduply + windows 7/8/8.1 + vss
+# post for scduply + windows 7/8/8.1 + vss
 
-function remove_shadow_server {
-	vssadmin delete shadows  /Shadow=$ShadowSetID /Quiet > /dev/null
+
+[[ ! -z $shadowid ]] && {
+	echo "delete used shadowcopy $shadowid"
+	scwin_vss delete $shadowid
 }
-
-function remove_shadow_workstation {
-# remove_shadow [ssid]
-	cd "$vss_tool_path"
-	./vshadow.exe -dx=$ShadowSetID 
-}
-
-rm -f /vsshadow/*
-[[ "$win_os_type" == "server" ]] && remove_shadow_server || remove_shadow_workstation

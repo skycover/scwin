@@ -1,81 +1,19 @@
 #!/bin/bash
-# pre for scduply + windows 7/8/8.1 + vss
+# work with shadowcopy in cygwin for scduply + windows 7/8/8.1/10
+# autor: Elias Arkhipov
+# mail: ai@c-mit.ru
 
-# function check_vss {
-	# vss_workstation="$PROGRAMFILES\Windows Kits\8.1\bin\x64"
-	# vss_server="$SYSTEMROOT"
-	# reg_ostype="/proc/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/ProductName"
-	# cat "$reg_ostype" | grep -i "server" >/dev/null 2>&1 && win_os_type="server" || win_os_type="workstation"
-	# [[ "$win_os_type" == "workstation" ]] && vss_tool_path="$vss_workstation" || vss_tool_path="$vss_server"
-# }
+unset shadowid
+unset shadowvolume
 
-
-function make_backup_server {
-# def parameters
-	eval $(vssadmin create shadow /for=$disk_source: | awk '
-		BEGIN {
-			FS="[ \t{}\\\\]+"
-		} /[0-9a-f]{12}/ {
-			printf("ShadowSetID={%s};\n",$(NF-1))
-		} /ShadowCopy/ {
-			printf("ShadowVolume=%s;\n",$(NF))
-		}')
-		ShadowDisk=$disk_source
-	[[ ! -e "/vsshadow" ]] && mkdir "/vsshadow"
-	[[ -L "/vsshadow/${ShadowDisk,,}" ]] && rm -f "/vsshadow/${ShadowDisk,,}"
-	ln -ds "/proc/sys/Device/${ShadowVolume}" "/vsshadow/${ShadowDisk,,}"
+function diskletter {
+	local _diskletter=`echo "$1"|egrep -o "/[a-z]/"`
+	echo ${_diskletter////}
 }
 
-function make_vss_workstation {
-# def parameters
-	cd "$vss_tool_path"
-	eval $(./vshadow.exe -p $disk_source: | awk '
-			BEGIN {
-				FS="[ \t:\\\\\/\\[\\]]+"
-			}
-			/- Shadow copy Set/{
-				printf("ShadowSetID=%s\n",$NF)
-			}
-			/- Original Volume name/ {
-				printf("ShadowDisk=%s\n",$(NF-1))
-			}
-			/- Shadow copy device name/ {
-				printf("ShadowVolume=\"%s\"\n",$NF)
-			}
-			/0x80070005/ {
-				printf("notaccess=\"  1\"\n")
-			}
-	'  2>/dev/null)
-	[[ $notaccess ]] && return 1
-	[[ ! -e "/vsshadow" ]] && mkdir "/vsshadow"
-	[[ -L "/vsshadow/${ShadowDisk,,}" ]] && rm -f "/vsshadow/${ShadowDisk,,}"
-	ln -ds "/proc/sys/Device/${ShadowVolume}" "/vsshadow/${ShadowDisk,,}"
+echo $SOURCE|grep "cygdrive" && {
+	. scwin_vss create $(diskletter "$SOURCE")
+	SOURCE=${SOURCE//cygdrive/vsshadow}
 }
 
-
-
-# ch source
-SOURCE=$(echo $SOURCE | sed 's/cygdrive/vsshadow/')
-#get source_vss
-disk_source=$(echo ${SOURCE,,}|awk -F"[\\\/]+" '{if (length($3)==1) print $3}')
- 
-#ch exclude
-#
-cat $EXCLUDE | sed 's/cygdrive/vsshadow/' > $EXCLUDE.vss
-EXCLUDE="$EXCLUDE.vss"
-
-. /usr/local/bin/scwin_vss_check || {
-	echo vss is missing
-	return 1
-}
-
-[[ "$win_os_type" == "server" ]] && {
-	make_backup_server || echo you dont have perssimitions ti create vss copy
-} || {
-	make_vss_workstation || {
-		echo you dont have perssimitions ti create vss copy
-		return 1
-	}
-}
-	
-echo 1 $ShadowDisk $ShadowSetID $ShadowVolume $win_os_type $vss_tool_path
+echo "updated SOURCE=$SOURCE"

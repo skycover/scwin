@@ -61,10 +61,12 @@ ask_password() {
 }
 
 install_modules() {
-	chmod +x "$scwin_lib/scdwin_modules/*"
-	cp -f "$scwin_lib/scdwin_modules/scwin_*" /usr/local/bin/
+	echo "try install modules"
+	# echo "$src_lib/scwin/scdwin_modules/*
+	chmod +x $src_lib/scwin/scdwin_modules/*
+	cp -f $src_lib/scwin/scdwin_modules/sc* /usr/local/bin/
 	[ ! -d /usr/local/lib/scwin ] && mkdir -p /usr/local/lib/scwin
-	cp -f "$scwin_lib/scdwin_modules/vss_p*" /usr/local/lib/scwin/
+	cp -f $src_lib/scwin/scdwin_modules/vss_p* /usr/local/lib/scwin/
 }
 
 install_mail() {
@@ -110,6 +112,37 @@ install_targz(){
 install_duplicity(){
 	# function to install modules
 	install_targz "$duplicity_version" duplicity.tar.gz
+	easy_install-2.7 -U cffi lockfile pexpect paramiko
+	cd /lib/python2.7/site-packages/duplicity
+	patch -p1 < $src_lib/scwin/duplicity-patch.diff
+}
+
+istall_scdw(){
+	read -p "Do you want install SkyCover scdw? (y/n)" answer
+	case $answer in
+        [Yy])
+            # little bit of magic, because you we working logging
+			ask_username
+			ask_password
+			expect -c 'set timeout 86000
+install_targz "https://github.com/skycover/scdw/tarball/$scdw_version" scdw.tar.gz
+expect "Would you like to create one now? (yes/no)" {send "yes\r"}
+expect "Username*" {send "'$s_user'\r"}
+expect "E-mail address*" {send "'$s_mail'\r"}
+expect "Password*" {send -- "'$s_password'\r"}
+expect "Password*" {send -- "'$s_password'\r"}
+expect eof
+send_user "\n"
+'
+            ;;
+        [Nn])
+            echo skip
+            return 0
+            ;;
+        *)
+            echo "answer? (y/n)"
+            ;;
+    esac
 }
 
 install_scduply(){
@@ -136,54 +169,13 @@ install_scduply(){
 [ ! -d /usr/local/src ] && mkdir /usr/local/src
 cd /usr/local/src
 
-# [ ! -d "extract" ] && mkdir extract 
-#cd extract
 install_duplicity
 install_scduply
 install_mail
-
-# [ ! -z "$logfile" ] && (
-	# install_modules 2>&1 |tee -a "$logfile"
-# ) || install_modules
+install_modules
 
 
-#
-# Installing scdw to Desktop
-#
-
-# do some things
-# cd /usr/local/src/scwin
-# cp ./scwin_* /usr/local/bin/
-#
-# mkdir -p $scwin_lib
-# cp ./vss_* $scwin_lib/
-
-
-#
-# Tune environment
-#
-
-# TODO not do if exist
-# echo "ulimit -n 1024" >>/etc/profile
-
-#
-# Set up cron as service
-#
-
-
-#
-# Generate ssh key
-# Export public key to
-#  C:\cygwin\usr\local\src\exported.pub
-#  to connect SkyCover Backup service
-#
-
-# TODO: not do if exist 
-# ssh-keygen -b 2048 -t rsa
-# echo|ssh-keygen -e >exported.pub
-
-#
-# Generate GPG key
-#
-
-# gpg --gen-key
+grep "ulimit -n 1024" /etc/profile > /dev/null || echo "ulimit -n 1024" >> /etc/profile
+[[ ! -a ~/.scduply ]] && scduply init
+[[ ! -a ~/.ssh/id_rsa.pub ]] && ssh-keygen
+[[ ! -a ~/.gnupg ]] && gpg --gen-key

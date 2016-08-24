@@ -1,5 +1,12 @@
-@if (@X)==(@Y) @end
+@if (@X)==(@Y) @end /* Harmless hybrid line that begins a JScript comment
 @echo off
+
+if "%~1"=="_TEE_" (
+  cscript //E:JScript //nologo "%~f0" %2
+  exit /b
+)
+
+
 setlocal ENABLEEXTENSIONS EnableDelayedExpansion
 :: install cygwin and scduply by Consult-MIT
 :: version 201604012d
@@ -41,6 +48,17 @@ set cygsetup=setup-x86.exe
 if defined ProgramFiles(x86) (
 	set cygsetup=setup-x86_64.exe
 )
+
+set tee_native=%$s_fname% _TEE_ %$logfile%
+set tee_cygwin=%dst%\bin\tee.exe -a %$logfile%
+set tee_internal=%src%\mtee.exe /+ %$logfile%
+if exist %src%\mtee.exe (
+	set tee_method=%tee_internal%
+) else if exist %dst%\bin\tee.exe (
+	set tee_method=%tee_cygwin%
+) else (
+	set tee_method=%tee_native%
+)
 :: проверка битности
 call :winver
 :: установка
@@ -49,7 +67,6 @@ pause
 exit /b 0
 
 :: ==================================================================
-:: installing all things
 :wget
 :: [source] [destination]
 call :%wget_method% %1 %2
@@ -61,12 +78,6 @@ exit /b !errorlevel!
 :install_all
 :: install cygwin
 call :install_cygwin 
-rem call :wget_vbscript "https://github.com/skycover/scduply/tarball/%scduply_v%" "skycover-scduply.tar.gz"
-rem call :create_shortcut "%%userprofile%%\desktop\CygwinTerminal.lnk" "C:\cygwin\bin\mintty.exe" " " "-i /Cygwin-Terminal.ico -"
-rem call :extract_scwin || (
-rem	call :log error "in module :extract_scwin"
-rem	exit /b 1
-rem )
 call :postinst
 exit /b 0
 :: ==================================================================
@@ -77,11 +88,7 @@ exit /b 0
 call :log debug "start bash wget"
 call :log debug "source %~1"
 call :log debug "destination %~2"
-if defined $logfile (
-	%dst%\bin\bash.exe -l -c 'wget --no-check-certificate  "%~1" -O "%~2"' 2>&1| "%$s_fname%" teenative
-) else (
-	%dst%\bin\bash.exe -l -c 'wget --no-check-certificate  "%~1" -O "%~2"'
-)
+call :run_program %dst%\bin\bash.exe -l -c 'wget --no-check-certificate  "%~1" -O "%~2"'
 exit /b !errorlevel!
 :: ==================================================================
 
@@ -92,7 +99,7 @@ exit /b !errorlevel!
 call :log debug "start powershellWGET"
 call :log debug "source %~1"
 call :log debug "destination %~2"
-powershell -version 1.0 -command "& {$wget = New-Object System.Net.WebClient; $wget.DownloadFile('%~1','%~2')}"
+call :run_program powershell -version 1.0 -command "& {$wget = New-Object System.Net.WebClient; $wget.DownloadFile('%~1','%~2')}"
 exit /b !errorlevel!
 :: ==================================================================
 
@@ -134,7 +141,7 @@ echo adoStream.SaveToFile target
 echo adoStream.Close
 echo.
 )>"!vbs_script!"
-cscript //nologo "!vbs_script!" "%~1" "%~2"
+call :run_program cscript //nologo "!vbs_script!" "%~1" "%~2"
 del /f /q "!vbs_script!"
 exit /b !errorlevel!
 :: ==================================================================
@@ -145,11 +152,7 @@ exit /b !errorlevel!
 call :log debug "start external wget"
 call :log debug "source %~1"
 call :log debug "destination %~2"
-if defined $logfile (
-	"%src%wget.exe" --no-check-certificate "%~1" -O "%~2" 2>&1| "%$s_fname%" teenative
-) else (
-	"%src%wget.exe" --no-check-certificate "%~1" -O "%~2"
-)
+call :run_program "%src%wget.exe" --no-check-certificate "%~1" -O "%~2"
 exit /b !errorlevel!
 :: ==================================================================
 
@@ -159,15 +162,14 @@ exit /b !errorlevel!
 call :log message "start module :postinst"
 if not exist "%asm%" mkdir "%asm%"
 :: some fixes
+set path=%path%;%dst%\bin
 call :wget "https://github.com/skycover/scwin/tarball/%scwin_v%" "%asm%\scwin.tar.gz"
 call :log debug "extract full scwin package"
-if defined $logfile (
-	"%dst%\bin\bash.exe" -l -c "cd '%asm%' && f=$(tar -tf scwin.tar.gz|head -1) && tar -xf scwin.tar.gz && mv ./$f ./scwin" 2>&1| "%$s_fname%" teenative
-) else (
-	"%dst%\bin\bash.exe" -l -c "cd '%asm%' && f=$(tar -tf scwin.tar.gz|head -1) && tar -xf scwin.tar.gz && mv ./$f ./scwin"
-)
-cd /d "%asm%\scwin"
-call :run_program "%dst%\bin\bash" "%cd%\scw-postinst.sh"
+cd /d %asm%
+call :run_program "%dst%\bin\tar.exe" -xvf "scwin.tar.gz"
+move /y %asm%\skycover-scwin-* %asm%\scwin
+xcopy /e /q /y %src%* %asm%\scwin\
+call :run_program "%dst%\bin\bash.exe" "%cd%\scwin\scw-postinst.sh"
 exit /b 0
 :: ==================================================================
 
@@ -194,7 +196,7 @@ exit /b 0
 call :log debug "start module :install_cygwin"
 set gcc=cygwin64-gcc-core
 if defined ProgramFiles(x86) set gcc=mingw64-x86_64-gcc-core
-set packages=python,gnupg,gcc,gcc-core,cyglsa,librsync-devel,librsync1,%gcc%,wget,vim,ncftp,openssh,cron,dos2unix,python-setuptools,expect,python-pexpect,python-crypto,python-cryptography,python-lockfile,python-paramiko,curl
+set packages=python,gnupg,gcc,gcc-core,cyglsa,librsync-devel,librsync1,%gcc%,wget,vim,ncftp,openssh,cron,dos2unix,python-setuptools,expect,curl,libopenssl100,openssl-devel,libffi-devel,patchutils
 set server=http://cygwin.mirror.constant.com
 call :log message "trying install cygwin with this packages:"
 call :log %packages%
@@ -206,26 +208,14 @@ if not exist "%cd%\%cygsetup%" (
 	call :log debug "try dowload cygwin"
 	call :wget "http://cygwin.com/%cygsetup%" "%cd%\%cygsetup%" 
 )
-call :log message "start install"
-if defined $logfile (
-	%cygsetup% -l "%src%\cygwin" -R "%dst%" -q -P "%packages%" -s "%server%" 2>&1| "%$s_fname%" teenative
-) else (
-	%cygsetup% -l "%src%\cygwin" -R "%dst%" -q -P "%packages%" -s "%server%"
-)
+call :log debug "start install"
+call :run_program %cygsetup% -l "%src%\cygwin" -R "%dst%" -q -P "%packages%" -s "%server%"
+
 ::call :create_shortcut "%%userprofile%%\desktop\CygwinTerminal.lnk" "C:\cygwin\bin\mintty.exe" " " "-i /Cygwin-Terminal.ico -"
 call :log debug "ended installation of cygwin"
 exit /b %errorlevel%
 :: ==================================================================
 
-:: ==================================================================
-:: simple tee
-:tee_native
-for /f "delims=" %%s in ('findstr "^.*"') do (
-	echo %%s
-	echo %%s>>%$logfile%
-)
-exit /b 0
-:: ==================================================================
 
 :: ==================================================================
 :create_shortcut
@@ -275,8 +265,7 @@ exit /b
 :run_program
 call :log message "start program %*"
 if defined $logfile (
-	echo %* | %$s_fname% teenative
-	%* 2>&1 | %$s_fname% teenative
+	%* 2>&1|%tee_method%
 ) else %*
 exit /b %errorlevel%
 :: ==================================================================
@@ -303,6 +292,7 @@ if /i "%~1"=="message" set type=
 set msg=%date:~6,4%.%date:~3,2%.%date:~0,2% !time! %username%@%computername% %$s_name%: !type! !msg!
 ::echo !type! !msg!
 if defined $logfile (
+	call :log_printmessage
 	call :log_printmessage >> "%$logfile%"
 ) else 	call :log_printmessage
 
@@ -321,3 +311,14 @@ if "%$loglevel%"=="3" (
 ) else exit /b 0
 exit /b 0
 :: ==================================================================
+
+----- End of JScript comment, beginning of normal JScript  ------------------*/
+var fso = new ActiveXObject("Scripting.FileSystemObject");
+var mode=8;
+var out = fso.OpenTextFile(WScript.Arguments(0),mode,true);
+var chr;
+while( !WScript.StdIn.AtEndOfStream ) {
+  chr=WScript.StdIn.Read(1);
+  WScript.StdOut.Write(chr);
+  out.Write(chr);
+}
