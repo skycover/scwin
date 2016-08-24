@@ -89,7 +89,7 @@ send_user "\n"
 [ ! -d /usr/local/src ] && mkdir /usr/local/src
 cd /usr/local/src
 
-scwin/scdwin_modules/scduply_upgrade +all +duplicity scduply_branch=$scduply_version scwin_branch=$scdw_version
+bash ./scwin/scdwin_modules/scduply_upgrade +all +duplicity scduply_branch=$scduply_version scwin_branch=$scdw_version
 install_mail
 
 grep "ulimit -n 1024" /etc/profile > /dev/null || echo "ulimit -n 1024" >> /etc/profile
