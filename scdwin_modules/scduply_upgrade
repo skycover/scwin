@@ -79,10 +79,11 @@ function scduply_update {
 function scwin_update {
 	scwin_url="https://github.com/skycover/scwin/tarball/$scwin_branch"
 	install_targz "$scwin_url" "scwin.tar.gz"
-	chmod +x $src_lib/scwin/scdwin_modules/*
-	cp -f $src_lib/scwin/scdwin_modules/sc* /usr/local/bin/
+	cd $src_lib
+	chmod +x $(get_foldername "scwin.tar.gz")scdwin_modules/*
+	cp -f $(get_foldername "scwin.tar.gz")scdwin_modules/sc* /usr/local/bin/
 	[ ! -d /usr/local/lib/scwin ] && mkdir -p /usr/local/lib/scwin
-	cp -f $src_lib/scwin/scdwin_modules/vss_p* /usr/local/lib/scwin/
+	cp -f $(get_foldername "scwin.tar.gz")scdwin_modules/vss_p* /usr/local/lib/scwin/
 }
 
 function install_targz {
