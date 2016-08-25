@@ -15,5 +15,7 @@ echo $SOURCE|grep "cygdrive" && {
 	. scwin_vss create $(diskletter "$SOURCE")
 	SOURCE=${SOURCE//cygdrive/vsshadow}
 }
+sed 's%^/cygdrive/%/vsshadow/%' ${EXCLUDE} > "${EXCLUDE}.vss"
+EXCLUDE="${EXCLUDE}.vss"
 
-echo "updated SOURCE=$SOURCE"
+echo "updated SOURCE=$SOURCE, EXCLUDE=${EXCLUDE}"

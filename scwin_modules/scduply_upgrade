@@ -4,7 +4,7 @@
 unset scduply_update
 unset scwin_update
 unset duplicity_update
-unset first_install
+unset scwin_first_install
 
 scduply_branch='force_full'
 scwin_branch='del.arhives'
@@ -79,11 +79,15 @@ function scduply_update {
 function scwin_update {
 	scwin_url="https://github.com/skycover/scwin/tarball/$scwin_branch"
 	install_targz "$scwin_url" "scwin.tar.gz"
-	cd $src_lib
-	chmod +x $(get_foldername "scwin.tar.gz")scdwin_modules/*
-	cp -f $(get_foldername "scwin.tar.gz")scdwin_modules/sc* /usr/local/bin/
-	[ ! -d /usr/local/lib/scwin ] && mkdir -p /usr/local/lib/scwin
-	cp -f $(get_foldername "scwin.tar.gz")scdwin_modules/vss_p* /usr/local/lib/scwin/
+	cd $src_lib 
+	[[ ! -z $scwin_first_install ]] && {
+		rm -rf scwin/cygwin
+		cp -rf scwin/* $(get_foldername "scwin.tar.gz")
+	}
+	chmod +x $(get_foldername "scwin.tar.gz")scwin_modules/*
+	cp -f $(get_foldername "scwin.tar.gz")scwin_modules/sc* /usr/local/bin/
+	[[ ! -d /usr/local/lib/scwin ]] && mkdir -p /usr/local/lib/scwin
+	cp -f $(get_foldername "scwin.tar.gz")scwin_modules/vss_p* /usr/local/lib/scwin/
 }
 
 function install_targz {
@@ -124,6 +128,9 @@ while [ $# -gt 0 ];do
 			unset duplicity_update
 			install_targz "$2" "$3"
 			return $?
+			;;
+		--scwin-firstinstall)
+			scwin_first_install=1
 			;;
 		-h|--help)
 			usage
