@@ -17,14 +17,14 @@ function link_disk {
 function make_vss_universal {
 	# make_vss_universal [disk]
 	shadowid=`echo -e "\n\r"|powershell -c '& {\$class=[WMICLASS]"root\cimv2:win32_shadowcopy"; \$class.create("'$1':\","ClientAccessible")| % { \$_.ShadowID } }'|dos2unix`
-	shadowvolume=`vssadmin list shadows "/shadow=$shadowid"|dos2unix|egrep -o "HarddiskVolumeShadowCopy[0-9]+"`
+	shadowvolume=`vssadmin list shadows "/shadow=$shadowid"|dos2unix|egrep -ao "HarddiskVolumeShadowCopy[0-9]+"`
 	link_disk $1 $shadowvolume
 }
 
 function delete_vss_universal {
 	# delete c:
 	# delete vsshadow by id
-	local disk_letter=`vssadmin list shadows "/shadow=$1"|egrep -o "[A-Z]:"`
+	local disk_letter=`vssadmin list shadows "/shadow=$1"|egrep -ao "[A-Z]:"`
 	[[ -L /vsshadow/${disk_letter//:/} ]] && {
 		echo "delete link to shadow copy $1 of disk ${disk_letter//:/}"
 		rm -f /vsshadow/${disk_letter//:/}
