@@ -89,7 +89,7 @@ send_user "\n"
 [ ! -d /usr/local/src ] && mkdir /usr/local/src
 cd /usr/local/src
 
-bash ./scwin/scdwin_modules/scduply_upgrade +all +duplicity --scwin-firstinstall
+bash ./scwin/scwin_modules/scduply_upgrade +all +duplicity --scwin-firstinstall
 install_mail
 
 grep "ulimit -n 1024" /etc/profile > /dev/null || echo "ulimit -n 1024" >> /etc/profile
