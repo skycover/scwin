@@ -6,7 +6,7 @@ unset scwin_update
 unset duplicity_update
 unset scwin_first_install
 
-scduply_branch='force_full'
+scduply_branch='master'
 scwin_branch='del.arhives'
 
 src_lib='/usr/local/src'
