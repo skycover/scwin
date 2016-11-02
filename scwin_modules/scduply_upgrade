@@ -3,25 +3,23 @@
 
 unset scduply_update
 unset scwin_update
+unset scdw_update
 unset duplicity_update
 unset scwin_first_install
 
-scduply_branch='master'
-scwin_branch='del.arhives'
 
 src_lib='/usr/local/src'
+null=/dev/null
 
 function usage {
 	cat<<EOF
-    $0 [[+scduply] [+scwin]| +all] [+duplicity] [scduply_branch={branch}] [scwin_branch={branch}]
+    $0 [[+scduply] [+scwin]| +all] [+duplicity] [+scdw] [ {scduply,scdw,scwin}_branch={branch}]
         upgrade scduply and modules from internet
         
-    +scduply                       - upgrade scduply
-    scduply_branch={branch}        - from branch
-    +scwin                         - upgrade scwin
-    scwin_branch={branch}          - from branch
-    +all                           - upgrade scduply and scwin
-    +duplicity                     - upgrade duplicity from website
+    +{scduply,scwin,scdw}                 - upgrade {scduply,scwin,scdw}
+    {scduply,scwin,scdw}_branch={branch}  - {scduply,scwin,scdw} from branch
+    +all                                  - upgrade scduply and scwin
+    +duplicity                            - upgrade duplicity from website
 EOF
 }
 
@@ -72,33 +70,45 @@ EOF
 }
 
 function scduply_update {
-	scduply_url="https://github.com/skycover/scduply/tarball/$scduply_branch"
+	scduply_url="https://github.com/skycover/scduply/tarball/${scduply_branch:-master}"
 	install_targz "$scduply_url" "scduply.tar.gz"
 }
 
 function scwin_update {
-	scwin_url="https://github.com/skycover/scwin/tarball/$scwin_branch"
+	scwin_url="https://github.com/skycover/scwin/tarball/${scwin_branch:-del.arhives}"
 	install_targz "$scwin_url" "scwin.tar.gz"
+	folder_name=$(get_foldername "scwin.tar.gz")
 	cd $src_lib 
 	[[ ! -z $scwin_first_install ]] && {
 		rm -rf scwin/cygwin
 		cp -rf scwin/* $(get_foldername "scwin.tar.gz")
 	}
-	chmod +x $(get_foldername "scwin.tar.gz")scwin_modules/*
-	cp -f $(get_foldername "scwin.tar.gz")scwin_modules/sc* /usr/local/bin/
+	chmod +x ${get_foldername}scwin_modules/*
+	cp -f ${get_foldername}scwin_modules/sc* /usr/local/bin/
 	[[ ! -d /usr/local/lib/scwin ]] && mkdir -p /usr/local/lib/scwin
-	cp -f $(get_foldername "scwin.tar.gz")scwin_modules/vss_p* /usr/local/lib/scwin/
+	cp -f ${get_foldername}scwin_modules/vss_p* /usr/local/lib/scwin/
+	unset folder_name
+}
+
+function scdw_update {
+	scdw_url="https://github.com/skycover/scdw/tarball/${scdw_branch:-django-1.10}"
+	install_targz "$scdw_url" "scdw.tar.gz" skip
+	cd $src_lib
+	folder_name=$(get_foldername "scdw.tar.gz")
+	cd $folder_name
+	easy_install-2.7 $(cat req.txt)
+	./install.sh
 }
 
 function install_targz {
-	# $url $filename
+	# $url $filename skip_install
 	cd $src_lib
 	wget --no-check-certificate "$1" -O "$2"
 	folder=$(get_foldername $2)
 	tar -xf "$2"
 	cd $folder
-	[[ -f install.sh ]] && ./install.sh
-	[[ -f setup.py ]] && python ./setup.py install
+	[[ -f install.sh && -z $3 ]] && ./install.sh
+	[[ -f setup.py && -z $3 ]] && python ./setup.py install
 }
 
 while [ $# -gt 0 ];do
@@ -107,20 +117,11 @@ while [ $# -gt 0 ];do
 			scduply_update=1
 			scwin_update=1
 			;;
-		scduply_branch=*)
-			scduply_branch="${1//scduply_branch=/}"
+		scduply_branch=*|scwin_branch=*|scdw_branch=*)
+			eval $1 > $null
 			;;
-		scwin_branch=*)
-			scwin_branch="${1//scwin_branch=/}"
-			;;
-		+scduply)
-			scduply_update=1
-			;;
-		+scwin)
-			scwin_update=1
-			;;
-		+duplicity)
-			duplicity_update=1
+		+scduply|+scwin|+scdw|+duplicity)
+			eval ${1//+/}_update=1 > $null
 			;;
 		--install_custompackage)
 			unset scduply_update
@@ -138,7 +139,8 @@ while [ $# -gt 0 ];do
 	esac
 	shift
 done
-
+[[ -z $* ]] && usage
 [[ ! -z $scduply_update ]] && scduply_update
 [[ ! -z $scwin_update ]] && scwin_update
 [[ ! -z $duplicity_update ]] && duplicity_update
+[[ ! -z $scdw_update ]] && scdw_update
