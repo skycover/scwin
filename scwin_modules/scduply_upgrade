@@ -77,16 +77,16 @@ function scduply_update {
 function scwin_update {
 	scwin_url="https://github.com/skycover/scwin/tarball/${scwin_branch:-del.arhives}"
 	install_targz "$scwin_url" "scwin.tar.gz"
-	folder_name=$(get_foldername "scwin.tar.gz")
-	cd $src_lib 
+	cd $src_lib
+	folder_name=$(get_foldername "scwin.tar.gz") 
 	[[ ! -z $scwin_first_install ]] && {
 		rm -rf scwin/cygwin
-		cp -rf scwin/* $(get_foldername "scwin.tar.gz")
+		cp -rf scwin/* $folder_name
 	}
-	chmod +x ${get_foldername}scwin_modules/*
-	cp -f ${get_foldername}scwin_modules/sc* /usr/local/bin/
+	chmod +x ${folder_name}scwin_modules/*
+	cp -f ${folder_name}scwin_modules/sc* /usr/local/bin/
 	[[ ! -d /usr/local/lib/scwin ]] && mkdir -p /usr/local/lib/scwin
-	cp -f ${get_foldername}scwin_modules/vss_p* /usr/local/lib/scwin/
+	cp -f ${folder_name}scwin_modules/vss_p* /usr/local/lib/scwin/
 	unset folder_name
 }
 
@@ -109,6 +109,11 @@ function install_targz {
 	cd $folder
 	[[ -f install.sh && -z $3 ]] && ./install.sh
 	[[ -f setup.py && -z $3 ]] && python ./setup.py install
+}
+
+[[ -z $* ]] && {
+	usage
+	exit 1
 }
 
 while [ $# -gt 0 ];do
@@ -139,7 +144,7 @@ while [ $# -gt 0 ];do
 	esac
 	shift
 done
-[[ -z $* ]] && usage
+
 [[ ! -z $scduply_update ]] && scduply_update
 [[ ! -z $scwin_update ]] && scwin_update
 [[ ! -z $duplicity_update ]] && duplicity_update
