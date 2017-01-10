@@ -11,7 +11,7 @@ s_mail="admin@somemail.dom"
 logfile="$1"
 
 #versions of packages
-scduply_version='force_full'
+scduply_version='master'
 scdw_version="master"
 scwin_version='del.arhives'
 
