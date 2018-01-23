@@ -37,7 +37,7 @@ function duplicity_update {
 	# function to install modules
 	duplicity_version=$(curl.exe -s http://duplicity.nongnu.org/|egrep -o "h[:/a-zA-Z0-9\.\+\-]+tar.gz"|head -1)
 	install_targz "$duplicity_version" duplicity.tar.gz
-	easy_install-2.7 -U cffi lockfile pexpect paramiko
+	easy_install-2.7 -U cffi lockfile pexpect paramiko fasteners
 	cd /lib/python2.7/site-packages/duplicity
 	cat<<EOF|patch -p1 -N
 diff -Naur '--exclude=*.pyc' old/backends/ssh_paramiko_backend.py now/backends/ssh_paramiko_backend.py

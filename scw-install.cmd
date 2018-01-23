@@ -196,7 +196,7 @@ exit /b 0
 call :log debug "start module :install_cygwin"
 set gcc=cygwin64-gcc-core
 if defined ProgramFiles(x86) set gcc=mingw64-x86_64-gcc-core
-set packages=python,python-devel,gnupg,gcc,gcc-core,cyglsa,librsync-devel,librsync1,%gcc%,wget,vim,ncftp,openssh,cron,dos2unix,python-setuptools,expect,curl,libopenssl100,openssl-devel,libffi-devel,patchutils
+set packages=python,python-devel,gnupg,gcc,gcc-core,cyglsa,librsync-devel,librsync1,%gcc%,wget,vim,ncftp,openssh,cron,dos2unix,python-setuptools,expect,curl,libopenssl100,openssl-devel,libffi-devel,patchutilspython2-pip,make,cmake,
 set server=http://cygwin.mirror.constant.com
 call :log message "trying install cygwin with this packages:"
 call :log %packages%
